@@ -13,7 +13,7 @@ export const INITIAL_STATS: BotStats = {
 
 export const INITIAL_CONFIG: BotConfig = {
   telegram_token: '9219037439:AAHOQk7AuLgqyhOWGXlUXx17vV8W8kDkswU',
-  telegram_chat_id: '',
+  telegram_chat_id: '1958806187',
   cron_secret: 'jobalert_secret_key_2026',
   anthropic_api_key: '',
   smtp_user: '',

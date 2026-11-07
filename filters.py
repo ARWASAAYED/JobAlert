@@ -11,7 +11,7 @@ def title_ok(job):
         return False, "title not frontend/react"
     if _has(t, config.TITLE_EXCLUDE):
         return False, "excluded title word"
-    if _has(t, config.OTHER_FRAMEWORKS) and "react" not in t:
+    if _has(t, config.OTHER_FRAMEWORKS) and not any(k in t for k in ["react", "frontend", "front end", "shopify"]):
         return False, "other framework"
     return True, ""
 
@@ -29,8 +29,8 @@ def full_ok(job):
     if not ok:
         return ok, why
     text = f"{job.title}\n{job.description or ''}".lower()
-    if job.description is not None and not _has(text, config.DESCRIPTION_MUST):
-        return False, "react not mentioned"
+    if config.DESCRIPTION_MUST and job.description is not None and not _has(text, config.DESCRIPTION_MUST):
+        return False, "required description keyword not mentioned"
     if _has(text, config.BAD_PHRASES):
         return False, "location restricted"
     y = min_years_required(text)

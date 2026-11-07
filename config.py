@@ -3,25 +3,25 @@ import os
 
 # ---- Telegram (من متغيرات البيئة أو حطيهم هنا مباشرة) ----
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "9219037439:AAHOQk7AuLgqyhOWGXlUXx17vV8W8kDkswU")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "1958806187")
 
 # ---- التوقيت ----
 POLL_SECONDS = 120          # الفحص كل كام ثانية (متنزلش عن 90 عشان لينكدان ميعملش بلوك)
-MAX_AGE_MINUTES = 30        # بس الوظايف اللي نزلت في آخر X دقيقة
+MAX_AGE_MINUTES = int(os.getenv("MAX_AGE_MINUTES", "1440"))  # فحص وظائف آخر 24 ساعة مع منع التكرار
 
 # ---- الفلاتر ----
 # لازم العنوان يحتوي واحدة من دول
-TITLE_MUST_ANY = ["react", "front-end", "front end", "frontend", "next.js", "nextjs"]
-# ولازم "react" تظهر في العنوان أو الوصف
-DESCRIPTION_MUST = ["react"]
+TITLE_MUST_ANY = ["react", "front-end", "front end", "frontend", "next.js", "nextjs", "shopify", "web developer"]
+# الكلمات المستهدفة في الوصف (لو فاضية مبيفلتش بالوصف)
+DESCRIPTION_MUST = []
 # أي عنوان فيه دول يتشال
 TITLE_EXCLUDE = [
     "senior", "sr.", "sr ", "lead", "principal", "staff", "manager", "head of",
     "architect", "director", "mid-level", "mid level", "intermediate", "expert",
     "full stack", "fullstack", "full-stack",   # شيلي السطر ده لو عايزة Full Stack كمان
-    "mobile", "react native", "wordpress", "shopify", "unpaid",
+    "mobile", "react native", "wordpress", "unpaid",
 ]
-# لو العنوان فيه دول ومفيهوش react يتشال
+# لو العنوان فيه دول ومفيهوش react أو frontend يتشال
 OTHER_FRAMEWORKS = ["angular", "vue", "svelte", "php", "laravel", ".net", "java ", "python"]
 
 # أقصى سنين خبرة مقبولة (الحد الأدنى المطلوب في الإعلان)
@@ -36,7 +36,7 @@ BAD_PHRASES = [
 ]
 
 # ---- مصادر لينكدان (من غير لوجين) ----
-LINKEDIN_KEYWORDS = ["react", "frontend"]
+LINKEDIN_KEYWORDS = ["react", "frontend", "shopify"]
 # (المكان, فلتر نوع الشغل: None = الكل, "2" = ريموت)
 LINKEDIN_SEARCHES = [
     ("Egypt", None),        # مصر: أونسايت/هايبرد/ريموت
