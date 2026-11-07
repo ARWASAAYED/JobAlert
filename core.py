@@ -55,8 +55,7 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
                 ok, why = False, "location"
             if ok and job.source == "linkedin":
                 try: linkedin.fetch_description(job)
-                except linkedin.RateLimited:
-                    stats["errors"]["linkedin"] = "rate limited (429)"; continue
+                except Exception: pass
             if ok: ok, why = filters.full_ok(job)
             store.add(job.key)
             if not ok:

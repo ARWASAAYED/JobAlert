@@ -77,7 +77,7 @@ def fetch():
     
     for kw in config.LINKEDIN_KEYWORDS:
         for loc, wt in config.LINKEDIN_SEARCHES:
-            params = {"keywords": kw, "location": loc, "sortBy": "DD", "start": 0}
+            params = {"keywords": kw, "location": loc, "sortBy": "DD", "start": 0, "f_TPR": "r172800"}
             if wt:
                 params["f_WT"] = wt
 

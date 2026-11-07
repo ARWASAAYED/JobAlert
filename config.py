@@ -11,15 +11,17 @@ MAX_AGE_MINUTES = int(os.getenv("MAX_AGE_MINUTES", "1440"))  # فحص وظائف
 
 # ---- الفلاتر ----
 # لازم العنوان يحتوي واحدة من دول
-TITLE_MUST_ANY = ["react", "front-end", "front end", "frontend", "next.js", "nextjs", "shopify", "web developer"]
+TITLE_MUST_ANY = [
+    "react", "front-end", "front end", "frontend", "next.js", "nextjs",
+    "shopify", "web developer", "ui developer", "ui/ux developer",
+    "javascript developer", "software engineer"
+]
 # الكلمات المستهدفة في الوصف (لو فاضية مبيفلتش بالوصف)
 DESCRIPTION_MUST = []
-# أي عنوان فيه دول يتشال
+# أي عنوان فيه دول يتشال (إلا لو مذكور junior صراحة)
 TITLE_EXCLUDE = [
     "senior", "sr.", "sr ", "lead", "principal", "staff", "manager", "head of",
-    "architect", "director", "mid-level", "mid level", "intermediate", "expert",
-    "full stack", "fullstack", "full-stack",   # شيلي السطر ده لو عايزة Full Stack كمان
-    "mobile", "react native", "wordpress", "unpaid",
+    "architect", "director", "expert", "unpaid"
 ]
 # لو العنوان فيه دول ومفيهوش react أو frontend يتشال
 OTHER_FRAMEWORKS = ["angular", "vue", "svelte", "php", "laravel", ".net", "java ", "python"]
@@ -32,11 +34,11 @@ BAD_PHRASES = [
     "us only", "u.s. only", "us citizens", "u.s. citizens", "authorized to work in the united states",
     "must be located in the us", "must reside in the us", "eligible to work in the us",
     "uk only", "must be based in the uk", "right to work in the uk", "eu only",
-    "must be located in canada", "canada only", "latam only", "must reside in",
+    "must be located in canada", "canada only", "latam only",
 ]
 
 # ---- مصادر لينكدان (من غير لوجين) ----
-LINKEDIN_KEYWORDS = ["react", "frontend", "shopify"]
+LINKEDIN_KEYWORDS = ["react developer", "frontend developer", "next.js", "shopify developer"]
 # (المكان, فلتر نوع الشغل: None = الكل, "2" = ريموت)
 LINKEDIN_SEARCHES = [
     ("Egypt", None),        # مصر: أونسايت/هايبرد/ريموت
