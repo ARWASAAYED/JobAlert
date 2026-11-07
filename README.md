@@ -33,6 +33,6 @@ Vercel Hobby cron بيشتغل مرة واحدة بس في اليوم، فاست
 - `/api/poll?key=...&dry=1` → تشغيل من غير إرسال
 
 ## حدود لازم تعرفيها
-- Wuzzuf مقفول على Vercel (Cloudflare + مكتبة native). شغّليه محلياً لو عايزاه: `ENABLE_WUZZUF=1 python main.py`
+- Wuzzuf مقفول على Vercel (Cloudflare + مكتبة native). شغّليه محلياً لو عايزاه: `ENABLE_WUZZUF=1 python local_run.py`
 - لينكدان ممكن يحجب IPs السيرفرات أكتر من IP بيتك (429). الـ endpoint بيرجع errors في الـ JSON.
 - الدالة عندها 60 ثانية. التنبيه الفوري بيتبعت الأول، والـ CV المخصص بيتبعت بعده.

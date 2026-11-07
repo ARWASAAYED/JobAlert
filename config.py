@@ -2,7 +2,7 @@
 import os
 
 # ---- Telegram (من متغيرات البيئة أو حطيهم هنا مباشرة) ----
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "9219037439:AAHOQk7AuLgqyhOWGXlUXx17vV8W8kDkswU")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 # ---- التوقيت ----

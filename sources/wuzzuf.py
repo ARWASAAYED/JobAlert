@@ -26,7 +26,7 @@ def parse(html_text):
         text = card.get_text(" ", strip=True)
         age = None
         for el in card.find_all(["div", "span"]):
-            age = _age_minutes(el.get_text(" ", strip=True)) if len(el.get_text()) < 40 else None
+            age = _age_minutes(el.get_text(" ", strip=True)) if len(el.get_text(strip=True)) < 40 else None
             if age is not None: break
         if age is None or age > config.MAX_AGE_MINUTES:
             continue

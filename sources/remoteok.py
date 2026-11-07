@@ -14,7 +14,9 @@ def fetch():
         if age > config.MAX_AGE_MINUTES:
             continue
         desc = BeautifulSoup(j.get("description", ""), "html.parser").get_text("\n", strip=True)
+        raw_url = j.get("url") or j.get("apply_url", "")
+        url = raw_url if raw_url.startswith("http") else f"https://remoteok.com{raw_url}"
         out.append(Job(source="remoteok", id=str(j["id"]), title=j["position"], company=j.get("company", ""),
-                       location=j.get("location", "") or "Worldwide", url=j.get("url") or j.get("apply_url", ""),
+                       location=j.get("location", "") or "Worldwide", url=url,
                        posted_text=f"{int(age)} minutes ago", description=desc, remote_search=True))
     return out
