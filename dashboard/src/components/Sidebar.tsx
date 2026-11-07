@@ -152,3 +152,4 @@ export function Sidebar({ collapsed, setCollapsed, botOnline }: SidebarProps) {
     </aside>
   );
 }
+

@@ -253,3 +253,4 @@ export function JobModal({ job, onClose }: JobModalProps) {
     </div>
   );
 }
+

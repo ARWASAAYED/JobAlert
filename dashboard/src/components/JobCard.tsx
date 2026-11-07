@@ -114,3 +114,4 @@ export function JobCard({ job, onOpenModal }: JobCardProps) {
     </div>
   );
 }
+

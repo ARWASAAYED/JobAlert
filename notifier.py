@@ -22,15 +22,46 @@ def send_text(text):
 
 def send_job(job):
     e = html.escape
-    lines = [f"🚨 <b>{e(job.title)}</b>",
-             f"🏢 {e(job.company or '-')}",
-             f"📍 {e(job.location or '-')}  ·  💼 {e(work_type(job))}"]
-    if job.posted_text: lines.append(f"⏱ {e(job.posted_text)}")
-    if job.applicants:  lines.append(f"👥 {e(job.applicants)}")
-    lines.append(f"🌐 {e(job.source)}")
+    
+    # Select appropriate flag
+    loc_lower = (job.location or "").lower()
+    if any(k in loc_lower for k in ["egypt", "cairo", "giza", "alexandria", "مصر", "القاهرة"]) or job.source == "wuzzuf":
+        flag = "🇪🇬"
+    elif job.remote_search or any(k in loc_lower for k in ["remote", "worldwide", "anywhere", "global"]):
+        flag = "🌐"
+    else:
+        flag = "🌍"
+
+    title = e(job.title)
+    comp = e(job.company or "Company")
+    loc = e(job.location or "Egypt")
+    posted = e(job.posted_at or job.posted_text or "Just now")
+    url = job.url
+
+    # Direct links in message body
+    if job.source == "linkedin":
+        li_url = f"https://linkedin.com/jobs/view/{job.id}"
+        links_block = f'<a href="{e(url)}">View</a>\n<a href="{e(li_url)}">Linkedin</a>'
+    else:
+        links_block = f'<a href="{e(url)}">View</a>\n<a href="{e(url)}">{e(job.source.capitalize())}</a>'
+
+    # Build the exact message format requested
+    lines = [
+        f"{flag} 🆕 {title}",
+        f"🏢 {comp}",
+        f"🕐 Posted {posted}",
+        links_block,
+        f"{title} at {comp} — {loc} |",
+    ]
+
+    # Clean inline buttons that always go directly to the job
+    keyboard = [[{"text": "⚡ View Job", "url": url}]]
+    if job.source == "linkedin":
+        keyboard[0].append({"text": "🔗 LinkedIn", "url": f"https://linkedin.com/jobs/view/{job.id}"})
+
     _post("sendMessage", chat_id=config.TELEGRAM_CHAT_ID, text="\n".join(lines), parse_mode="HTML",
           disable_web_page_preview=True,
-          reply_markup={"inline_keyboard": [[{"text": "⚡ قدّمي دلوقتي", "url": job.url}]]})
+          reply_markup={"inline_keyboard": keyboard})
 
 def get_chat_id():
     data = requests.get(API.format(config.TELEGRAM_TOKEN, "getUpdates"), timeout=20).json()

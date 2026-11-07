@@ -75,9 +75,11 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
     return stats
 
 def test_alert():
-    job = Job(source="test", id="1", title="Junior React Developer (TEST)", company="Acme Co", location="Cairo, Egypt",
-              url="https://example.com/apply", posted_text="2 minutes ago",
-              description="React, Next.js, TypeScript, REST APIs. 0-2 years of experience. Hybrid.")
+    import datetime as _dt
+    now_str = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    job = Job(source="linkedin", id="4485506218", title="Shopify developer (TEST)", company="Republic- Job Company", location="Cairo, Egypt",
+              url="https://www.linkedin.com/jobs/view/4485506218/", posted_text="Just now", posted_at=now_str,
+              description="Shopify, Liquid, React, JavaScript, CSS. 0-2 years of experience. Cairo, Egypt.")
     if notifier.enabled(): notifier.send_job(job)
     enrich(job)
     return {"test": "sent", "telegram": notifier.enabled(), "email": emailer.enabled(), "cv_ai": cvgen.enabled()}

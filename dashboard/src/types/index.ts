@@ -64,3 +64,4 @@ export interface TelegramBotInfo {
   username: string;
   can_join_groups: boolean;
 }
+

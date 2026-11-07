@@ -22,8 +22,9 @@ def fetch():
             title = g("title")
             company, _, t = title.partition(":")
             desc = BeautifulSoup(g("description"), "html.parser").get_text("\n", strip=True)
+            posted_at = pub.strftime("%Y-%m-%d %H:%M")
             out.append(Job(source="weworkremotely", id=g("guid") or g("link"), title=(t or title).strip(),
                            company=company.strip() if t else "", location=g("region") or "Worldwide",
-                           url=g("link"), posted_text=f"{int(age)} minutes ago", description=desc,
-                           remote_search=True))
+                           url=g("link"), posted_text=f"{int(age)} minutes ago", posted_at=posted_at,
+                           description=desc, remote_search=True))
     return out

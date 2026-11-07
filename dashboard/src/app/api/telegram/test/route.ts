@@ -18,7 +18,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const message = `🚨 <b>Junior React Developer</b>\n🏢 Vodafone Intelligent Solutions (_VOIS)\n📍 Cairo, Egypt  ·  💼 Hybrid\n⏱ Just now\n🌐 LinkedIn\n\n🎯 <b>Match Score: 95%</b>\n✅ Skills: React, Next.js, TypeScript, Tailwind CSS\n\n<i>This is a test notification from your JobAlert Dashboard!</i>`;
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const testJobId = '4485506218';
+    const testJobUrl = `https://www.linkedin.com/jobs/view/${testJobId}/`;
+    const testLiUrl = `https://linkedin.com/jobs/view/${testJobId}`;
+
+    const message = [
+      '🇪🇬 🆕 Shopify developer',
+      '🏢 Republic- Job Company',
+      `🕐 Posted ${formattedDate}`,
+      `<a href="${testJobUrl}">View</a>`,
+      `<a href="${testLiUrl}">Linkedin</a>`,
+      'Shopify developer at Republic- Job Company — Cairo, Egypt |',
+    ].join('\n');
 
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
@@ -32,14 +45,12 @@ export async function POST(request: Request) {
           inline_keyboard: [
             [
               {
-                text: '⚡ قدّمي دلوقتي (Apply Now)',
-                url: 'https://linkedin.com',
+                text: '⚡ View Job',
+                url: testJobUrl,
               },
-            ],
-            [
               {
-                text: '📊 Open Dashboard',
-                url: 'https://vercel.com',
+                text: '🔗 LinkedIn',
+                url: testLiUrl,
               },
             ],
           ],
@@ -68,3 +79,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

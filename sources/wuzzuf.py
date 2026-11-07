@@ -34,9 +34,11 @@ def parse(html_text):
         href = a["href"].split("?")[0]
         if href.startswith("/"): href = "https://wuzzuf.net" + href
         jid = re.search(r"/jobs/p/([^-/]+)", href)
+        import datetime as _dt
+        posted_at = (_dt.datetime.now() - _dt.timedelta(minutes=age)).strftime("%Y-%m-%d %H:%M") if age is not None else ""
         jobs.append(Job(source="wuzzuf", id=jid.group(1) if jid else href, title=a.get_text(" ", strip=True),
                         company=(comp.get_text(" ", strip=True).rstrip(" -") if comp else ""),
-                        location="Egypt", url=href, posted_text=f"{age} minutes ago",
+                        location="Egypt", url=href, posted_text=f"{age} minutes ago", posted_at=posted_at,
                         description=text))  # نص الكارت (فيه Remote/Hybrid/Experience أحياناً)
     return jobs
 

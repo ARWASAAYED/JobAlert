@@ -62,3 +62,4 @@ export function sourceBadgeColor(source: string): { bg: string; text: string; bo
       };
   }
 }
+

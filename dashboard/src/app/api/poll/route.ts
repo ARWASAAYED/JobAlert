@@ -15,3 +15,4 @@ export async function GET(request: Request) {
     message: 'Manual poll cycle executed successfully.',
   });
 }
+

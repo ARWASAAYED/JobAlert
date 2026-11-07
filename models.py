@@ -10,6 +10,7 @@ class Job:
     location: str
     url: str
     posted_text: str = ""            # "5 minutes ago"
+    posted_at: str = ""              # "2026-11-04 17:12"
     description: Optional[str] = None
     remote_search: bool = False      # اتجابت من بحث ريموت
     applicants: str = ""

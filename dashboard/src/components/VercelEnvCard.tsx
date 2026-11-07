@@ -179,3 +179,4 @@ export function VercelEnvCard({ token, chatId, cronSecret }: VercelEnvCardProps)
     </div>
   );
 }
+

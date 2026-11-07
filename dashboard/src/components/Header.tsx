@@ -113,3 +113,4 @@ export function Header({ onTriggerPoll, isPolling, botOnline }: HeaderProps) {
     </header>
   );
 }
+

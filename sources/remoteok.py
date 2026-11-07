@@ -16,7 +16,10 @@ def fetch():
         desc = BeautifulSoup(j.get("description", ""), "html.parser").get_text("\n", strip=True)
         raw_url = j.get("url") or j.get("apply_url", "")
         url = raw_url if raw_url.startswith("http") else f"https://remoteok.com{raw_url}"
+        epoch = int(j.get("epoch", 0))
+        import datetime as _dt
+        posted_at = _dt.datetime.fromtimestamp(epoch, _dt.timezone.utc).strftime("%Y-%m-%d %H:%M") if epoch else ""
         out.append(Job(source="remoteok", id=str(j["id"]), title=j["position"], company=j.get("company", ""),
                        location=j.get("location", "") or "Worldwide", url=url,
-                       posted_text=f"{int(age)} minutes ago", description=desc, remote_search=True))
+                       posted_text=f"{int(age)} minutes ago", posted_at=posted_at, description=desc, remote_search=True))
     return out
