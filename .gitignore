@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+cv_out/
+seen.db
+.vercel/
