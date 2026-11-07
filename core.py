@@ -2,7 +2,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, wait
 import config, filters, notifier, emailer, cvgen, referral
 from models import Job
-from sources import linkedin, remoteok, wwr
+from sources import linkedin, remoteok, wwr, remotive
 
 log = logging.getLogger("jobalert")
 
@@ -14,6 +14,7 @@ def get_sources():
         s.append(("wuzzuf", wuzzuf.fetch))
     if config.ENABLE_REMOTEOK: s.append(("remoteok", remoteok.fetch))
     if config.ENABLE_WWR:      s.append(("wwr", wwr.fetch))
+    s.append(("remotive", remotive.fetch))
     return s
 
 def enrich(job, dry=False):

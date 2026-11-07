@@ -17,7 +17,8 @@ def fetch():
             g = lambda n: (item.findtext(n) or "").strip()
             pub = email.utils.parsedate_to_datetime(g("pubDate"))
             age = (now - pub).total_seconds() / 60
-            if age > config.MAX_AGE_MINUTES:
+            max_age = max(config.MAX_AGE_MINUTES, 7200)  # 5 days window for WWR RSS feeds
+            if age > max_age:
                 continue
             title = g("title")
             company, _, t = title.partition(":")

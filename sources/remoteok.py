@@ -11,7 +11,8 @@ def fetch():
         if not isinstance(j, dict) or "position" not in j:
             continue
         age = (now - int(j.get("epoch", 0))) / 60
-        if age > config.MAX_AGE_MINUTES:
+        max_age = max(config.MAX_AGE_MINUTES, 4320)  # 3 days window for remote boards
+        if age > max_age:
             continue
         desc = BeautifulSoup(j.get("description", ""), "html.parser").get_text("\n", strip=True)
         raw_url = j.get("url") or j.get("apply_url", "")
