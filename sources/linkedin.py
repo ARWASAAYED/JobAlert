@@ -71,30 +71,46 @@ def parse_cards(html_text, remote_search=False):
     return jobs
 
 def fetch():
+    import time
     out = []
-    secs = config.MAX_AGE_MINUTES * 60
+    seen_ids = set()
+    
     for kw in config.LINKEDIN_KEYWORDS:
         for loc, wt in config.LINKEDIN_SEARCHES:
-            params = {"keywords": kw, "location": loc, "f_TPR": f"r{secs}", "sortBy": "DD", "start": 0}
+            params = {"keywords": kw, "location": loc, "sortBy": "DD", "start": 0}
             if wt:
                 params["f_WT"] = wt
-            r = requests.get(SEARCH, params=params, headers=HEADERS, timeout=20)
-            if r.status_code == 429:
-                raise RateLimited("LinkedIn 429")
-            if r.status_code != 200:
-                continue
-            out += parse_cards(r.text, remote_search=(wt == "2"))
+
+            try:
+                r = requests.get(SEARCH, params=params, headers=HEADERS, timeout=15)
+                if r.status_code == 429:
+                    time.sleep(3)
+                    continue
+                if r.status_code != 200:
+                    continue
+                
+                cards = parse_cards(r.text, remote_search=(wt == "2"))
+                for job in cards:
+                    if job.id not in seen_ids:
+                        seen_ids.add(job.id)
+                        out.append(job)
+            except Exception:
+                pass
+            
+            time.sleep(1.2)  # Avoid rate limiting
+            
     return out
 
 def fetch_description(job):
-    r = requests.get(DETAIL.format(job.id), headers=HEADERS, timeout=20)
-    if r.status_code == 429:
-        raise RateLimited("LinkedIn 429")
-    if r.status_code != 200:
-        return
-    soup = BeautifulSoup(r.text, "html.parser")
-    d = soup.select_one(".show-more-less-html__markup, .description__text")
-    job.description = d.get_text("\n", strip=True) if d else ""
-    ap = soup.select_one(".num-applicants__caption, .num-applicants__figure")
-    if ap:
-        job.applicants = ap.get_text(" ", strip=True)
+    try:
+        r = requests.get(DETAIL.format(job.id), headers=HEADERS, timeout=15)
+        if r.status_code != 200:
+            return
+        soup = BeautifulSoup(r.text, "html.parser")
+        d = soup.select_one(".show-more-less-html__markup, .description__text")
+        job.description = d.get_text("\n", strip=True) if d else ""
+        ap = soup.select_one(".num-applicants__caption, .num-applicants__figure")
+        if ap:
+            job.applicants = ap.get_text(" ", strip=True)
+    except Exception:
+        pass
