@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
-import { VercelEnvCard } from '@/components/VercelEnvCard';
 import { TelegramBotCard } from '@/components/TelegramBotCard';
 import { INITIAL_STATS, INITIAL_CONFIG } from '@/lib/mock-data';
 import {
@@ -102,10 +101,10 @@ export default function SettingsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-extrabold text-white">
-                Bot Settings & Vercel Configuration
+                Bot Settings & Preferences
               </h1>
               <p className="text-xs text-zinc-400 mt-1">
-                Customize job search criteria, experience constraints, and Vercel cloud environment variables.
+                Customize job search criteria, experience constraints, and keyword filters.
               </p>
             </div>
 
@@ -271,55 +270,6 @@ export default function SettingsPage() {
                   className="w-full accent-indigo-500 cursor-pointer"
                 />
               </div>
-            </div>
-          </div>
-
-          {/* 3. Vercel Environment Variables Card */}
-          <VercelEnvCard
-            token={config.telegram_token}
-            chatId={config.telegram_chat_id}
-            cronSecret={config.cron_secret}
-          />
-
-          {/* 4. External Cron Schedule Guide */}
-          <div className="rounded-2xl border border-[#212438] bg-[#11121d] p-6 shadow-xl backdrop-blur-xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                <Clock className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">
-                  Recurring Schedule Setup (cron-job.org)
-                </h3>
-                <p className="text-xs text-zinc-400">
-                  Keeps your bot continuously running every 2 minutes for free
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-xs text-zinc-300">
-              <p>
-                Because Vercel Hobby free tier only permits 1 scheduled cron run per day, use the free{' '}
-                <a
-                  href="https://cron-job.org"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sky-400 underline font-semibold"
-                >
-                  cron-job.org
-                </a>{' '}
-                service to ping your endpoint:
-              </p>
-
-              <div className="rounded-xl border border-[#22253c] bg-[#0c0d16] p-3 font-mono text-xs text-indigo-300 select-all">
-                https://jobalert-vert.vercel.app/api/poll?key=••••••••••••••••••••
-              </div>
-
-              <ul className="list-disc list-inside space-y-1 text-zinc-400 text-[11px] pt-1">
-                <li>Schedule interval: Every 2 minutes</li>
-                <li>HTTP Method: GET</li>
-                <li>Response status expected: 200 OK</li>
-              </ul>
             </div>
           </div>
         </main>

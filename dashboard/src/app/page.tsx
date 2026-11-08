@@ -9,7 +9,6 @@ import { FiltersPanel } from '@/components/FiltersPanel';
 import { JobCard } from '@/components/JobCard';
 import { JobModal } from '@/components/JobModal';
 import { ActivityFeed } from '@/components/ActivityFeed';
-import { VercelEnvCard } from '@/components/VercelEnvCard';
 import {
   INITIAL_STATS,
   INITIAL_CONFIG,
@@ -48,12 +47,8 @@ export default function DashboardPage() {
         const data = await res.json();
         if (Array.isArray(data.jobs) && data.jobs.length > 0) {
           setJobs(data.jobs);
-          if (data.source === 'redis_live') {
-            setStats((prev) => ({
-              ...prev,
-              jobs_found_today: Math.max(prev.jobs_found_today, data.total),
-              last_poll: new Date().toISOString(),
-            }));
+          if (data.stats) {
+            setStats(data.stats);
           }
         }
       }
@@ -253,18 +248,9 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* 4. Bottom Grid: Vercel Setup & Activity Feed */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <VercelEnvCard
-                token={config.telegram_token}
-                chatId={config.telegram_chat_id}
-                cronSecret={config.cron_secret}
-              />
-            </div>
-            <div>
-              <ActivityFeed activities={activities} />
-            </div>
+          {/* 4. Real-time Activity Feed */}
+          <div>
+            <ActivityFeed activities={activities} />
           </div>
         </main>
       </div>

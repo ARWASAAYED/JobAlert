@@ -1,19 +1,19 @@
 import { Job, BotStats, Activity, BotConfig } from '@/types';
 
 export const INITIAL_STATS: BotStats = {
-  jobs_found_today: 58,
-  jobs_found_week: 135,
-  alerts_sent: 14,
-  sources_active: 8,
+  jobs_found_today: 23,
+  jobs_found_week: 54,
+  alerts_sent: 23,
+  sources_active: 5,
   sources_total: 8,
-  last_poll: '2026-11-07T19:25:00.000Z',
+  last_poll: 'Just now',
   bot_username: 'MyFuckingJobAlertbot',
   is_online: true,
 };
 
 export const INITIAL_CONFIG: BotConfig = {
   telegram_token: '••••••••••••••••••••••••••••••••••••••••••••',
-  telegram_chat_id: '••••••••••',
+  telegram_chat_id: '1958806187',
   cron_secret: '••••••••••••••••••••',
   anthropic_api_key: '',
   smtp_user: '',

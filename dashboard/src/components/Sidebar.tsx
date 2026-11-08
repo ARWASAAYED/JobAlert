@@ -37,7 +37,7 @@ export function Sidebar({ collapsed, setCollapsed, botOnline }: SidebarProps) {
       icon: Briefcase,
     },
     {
-      name: 'Settings & Vercel',
+      name: 'Settings',
       href: '/settings',
       icon: Settings,
     },
