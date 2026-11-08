@@ -144,17 +144,10 @@ export function TelegramBotCard({ token, chatId, setChatId }: TelegramBotCardPro
         <div className="rounded-xl border border-[#222538] bg-[#11121d] p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-zinc-300">HTTP API Token</span>
-            <button
-              onClick={() => handleCopy(token)}
-              className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-indigo-300 transition-colors"
-            >
-              <Copy className="h-3 w-3" />
-              <span>{copied ? 'Copied' : 'Copy'}</span>
-            </button>
+            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-sans">Secured in .env</span>
           </div>
           <div className="font-mono text-xs text-zinc-400 bg-[#0b0c13] px-3 py-2 rounded-lg border border-[#1b1c2b] truncate flex items-center justify-between">
-            <span>••••••••••••••••••••••••••••••••••••</span>
-            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-sans">Secured in .env</span>
+            <span>••••••••••••••••••••••••••••••••••••••••••••</span>
           </div>
           <p className="text-[10px] text-zinc-500 mt-2">
             Configured safely for Vercel production deployment.

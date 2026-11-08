@@ -28,10 +28,10 @@ export const INITIAL_CONFIG: BotConfig = {
     jobicy: true,
   },
   filters: {
-    title_must: ['react', 'frontend', 'front-end', 'next.js', 'nextjs', 'shopify', 'web developer'],
+    title_must: ['react', 'frontend', 'front-end', 'next.js', 'nextjs', 'full stack', 'fullstack', 'shopify', 'web developer'],
     title_exclude: [
       'senior', 'sr.', 'lead', 'principal', 'staff', 'manager', 'head of',
-      'architect', 'director', 'mid-level', 'fullstack', 'mobile', 'unpaid'
+      'architect', 'director', 'mid-level', 'mobile', 'unpaid'
     ],
     max_years: 2,
     locations: ['Egypt', 'Cairo', 'Alexandria', 'Remote', 'Worldwide'],

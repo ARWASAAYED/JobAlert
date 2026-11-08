@@ -312,7 +312,7 @@ export default function SettingsPage() {
               </p>
 
               <div className="rounded-xl border border-[#22253c] bg-[#0c0d16] p-3 font-mono text-xs text-indigo-300 select-all">
-                https://jobalert-arrwa-s-projects.vercel.app/api/poll?key={config.cron_secret}
+                https://jobalert-vert.vercel.app/api/poll?key=••••••••••••••••••••
               </div>
 
               <ul className="list-disc list-inside space-y-1 text-zinc-400 text-[11px] pt-1">

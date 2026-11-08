@@ -121,3 +121,4 @@ def fetch():
             log.warning("Bayt fetch error for %s: %s", target["url"], e)
 
     return out
+

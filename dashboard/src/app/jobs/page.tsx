@@ -13,23 +13,58 @@ import Link from 'next/link';
 
 export default function JobsPage() {
   const [collapsed, setCollapsed] = useState(false);
-  const [jobs] = useState<Job[]>(INITIAL_JOBS);
+  const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
   const [search, setSearch] = useState('');
   const [selectedSource, setSelectedSource] = useState('all');
   const [workTypeFilter, setWorkTypeFilter] = useState('all');
   const [minScore, setMinScore] = useState(0);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+
+  const fetchJobs = async () => {
+    try {
+      const res = await fetch('/api/jobs');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.jobs) && data.jobs.length > 0) {
+          setJobs(data.jobs);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch jobs:', e);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const handleTriggerPoll = async () => {
+    setIsPolling(true);
+    try {
+      await fetch('/api/poll');
+      await fetchJobs();
+    } catch {
+      // silent fallback
+    } finally {
+      setIsPolling(false);
+    }
+  };
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
       if (search.trim()) {
-        const query = search.toLowerCase();
-        const matchesTitle = job.title.toLowerCase().includes(query);
-        const matchesComp = job.company.toLowerCase().includes(query);
-        const matchesLoc = job.location.toLowerCase().includes(query);
-        const matchesDesc = job.description.toLowerCase().includes(query);
+        const query = search.toLowerCase().trim();
+        const matchesTitle = (job.title || '').toLowerCase().includes(query);
+        const matchesComp = (job.company || '').toLowerCase().includes(query);
+        const matchesLoc = (job.location || '').toLowerCase().includes(query);
+        const matchesDesc = (job.description || '').toLowerCase().includes(query);
         const matchesCountry = (job.country || '').toLowerCase().includes(query);
-        if (!matchesTitle && !matchesComp && !matchesLoc && !matchesDesc && !matchesCountry) return false;
+        const matchesKeywords = Array.isArray(job.matched_keywords) && job.matched_keywords.some(k => k.toLowerCase().includes(query));
+        const matchesCareer = (job.career_level || '').toLowerCase().includes(query);
+        if (!matchesTitle && !matchesComp && !matchesLoc && !matchesDesc && !matchesCountry && !matchesKeywords && !matchesCareer) {
+          return false;
+        }
       }
       if (selectedSource !== 'all' && job.source !== selectedSource) return false;
       if (workTypeFilter !== 'all') {
@@ -57,8 +92,8 @@ export default function JobsPage() {
         }`}
       >
         <Header
-          onTriggerPoll={async () => {}}
-          isPolling={false}
+          onTriggerPoll={handleTriggerPoll}
+          isPolling={isPolling}
           botOnline={INITIAL_STATS.is_online}
         />
 
