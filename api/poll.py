@@ -18,20 +18,25 @@ class handler(BaseHTTPRequestHandler):
         secret = os.getenv("CRON_SECRET", "jobalert_secret_key_2026")
         key = (q.get("key", [""])[0]) or self.headers.get("Authorization", "").replace("Bearer ", "")
         
-        is_valid = (bool(key) and bool(secret) and hmac.compare_digest(key.encode(), secret.encode())) or (key == "jobalert_secret_key_2026")
+        is_feed = "feed" in q or "jobs" in q
+        is_valid = (bool(key) and bool(secret) and hmac.compare_digest(key.encode(), secret.encode())) or (key == "jobalert_secret_key_2026") or is_feed
         if not is_valid:
             return self._send(401, {"error": "unauthorized", "hint": "Please provide ?key=jobalert_secret_key_2026"})
         
         s = None
         try:
             import config, notifier, emailer, core, store as st
+            
+            s = st.Store()
+            if is_feed:
+                feed = s.get_live_feed(limit=100)
+                return self._send(200, {"ok": True, "store": s.backend, "total": len(feed), "jobs": feed})
+
             dry = "dry" in q
             if "test" in q:
                 return self._send(200, core.test_alert())
             if not dry and not (notifier.enabled() or emailer.enabled()):
                 return self._send(503, {"error": "Telegram/Gmail env vars not set"})
-            
-            s = st.Store()
             # حماية صارمة على Vercel لمنع التكرار: إذا لم يتصل بـ Redis يرفض الإرسال
             if not dry and os.getenv("VERCEL") and not s.persistent:
                 return self._send(503, {"error": "No persistent store: check REDIS_URL"})

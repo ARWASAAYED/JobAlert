@@ -1,12 +1,11 @@
 {
   "functions": {
-    "api/*.py": {
+    "api/poll.py": {
       "maxDuration": 60,
       "includeFiles": "{*.py,sources/**,master_cv.json}"
     }
   },
   "rewrites": [
-    { "source": "/api/poll", "destination": "/api/poll" },
-    { "source": "/api/feed", "destination": "/api/feed" }
+    { "source": "/api/poll", "destination": "/api/poll" }
   ]
 }
