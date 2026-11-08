@@ -90,12 +90,22 @@ LINKEDIN_SEARCHES = [
 ]
 
 ENABLE_LINKEDIN = True
-ENABLE_INDEED = os.getenv("ENABLE_INDEED", "0") == "1"
+ENABLE_INDEED = os.getenv("ENABLE_INDEED", "1") == "1"
+ENABLE_BAYT = os.getenv("ENABLE_BAYT", "1") == "1"
 ENABLE_FREEHIRE = os.getenv("ENABLE_FREEHIRE", "1") == "1"
 ENABLE_JOBICY = os.getenv("ENABLE_JOBICY", "1") == "1"
 ENABLE_WUZZUF = os.getenv("ENABLE_WUZZUF", "0" if os.getenv("VERCEL") else "1") == "1"
 ENABLE_REMOTEOK = True
 ENABLE_WWR = True
+
+# ---- إعدادات الحسابات الإضافية (تُقرأ فقط من .env بأمان) ----
+BAYT_EMAIL = os.getenv("BAYT_EMAIL", "")
+BAYT_PASSWORD = os.getenv("BAYT_PASSWORD", "")
+BAYT_COOKIE = os.getenv("BAYT_COOKIE", "")
+
+INDEED_EMAIL = os.getenv("INDEED_EMAIL", "")
+INDEED_PASSWORD = os.getenv("INDEED_PASSWORD", "")
+INDEED_COOKIE = os.getenv("INDEED_COOKIE", "")
 
 FREEHIRE_QUERIES = ["React", "Frontend", "Next.js", "Web Developer"]
 JOBICY_TAGS = ["react", "frontend", "javascript"]

@@ -167,9 +167,19 @@ class Store:
         try:
             job_data = {
                 "key": job.key, "id": getattr(job, "id", job.key), "title": job.title,
+                "source": getattr(job, "source", "unknown"),
                 "company": job.company, "location": job.location, "url": job.url,
-                "score": getattr(job, "score", 0), "work_type": getattr(job, "work_type", ""),
-                "country": getattr(job, "country", ""), "posted_at": getattr(job, "posted_at", ""),
+                "posted_text": getattr(job, "posted_text", "") or "Just now",
+                "posted_at": getattr(job, "posted_at", ""),
+                "description": getattr(job, "description", "") or f"{job.title} at {job.company}",
+                "score": getattr(job, "score", 0), "match_score": getattr(job, "score", 0),
+                "verdict": getattr(job, "verdict", "Good Fit"),
+                "matched_keywords": getattr(job, "strengths", ["React", "Frontend"]),
+                "missing_keywords": getattr(job, "gaps", []),
+                "cv_suggestions": getattr(job, "cv_suggestions", []),
+                "remote": getattr(job, "remote_search", False) or "remote" in getattr(job, "work_type", "").lower(),
+                "work_type": getattr(job, "work_type", "On-site"),
+                "country": getattr(job, "country", ""),
                 "salary": getattr(job, "salary", ""), "recruiter": getattr(job, "recruiter", ""),
                 "career_level": getattr(job, "career_level", ""),
                 "sent_at": int(time.time())

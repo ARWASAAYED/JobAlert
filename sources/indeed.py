@@ -1,76 +1,124 @@
-import logging
+"""Indeed job board scraper (Remote & Regional).
+يدعم الترتيب حسب التاريخ (?sort=date) للحصول على أحدث الوظائف فور نشرها، واستخدام الكوكيز/الحسابات عند توفرها.
+"""
+import logging, re
+from bs4 import BeautifulSoup
+import config, filters
 from models import Job
-import config
 
 log = logging.getLogger("jobalert.indeed")
 
-def fetch():
-    """
-    Fetches fresh junior/frontend job postings from Indeed using JobSpy.
-    Resilient fallback: returns [] if dependencies or network fail.
-    """
-    try:
-        from jobspy import scrape_jobs
-    except ImportError:
-        log.warning("JobSpy not installed; skipping Indeed scraper.")
-        return []
+SEARCH_TARGETS = [
+    {"url": "https://eg.indeed.com/jobs", "params": {"q": "react frontend", "sort": "date"}, "country": "Egypt"},
+    {"url": "https://www.indeed.com/jobs", "params": {"q": "react developer", "l": "remote", "sort": "date"}, "country": "Worldwide"},
+]
 
-    searches = getattr(config, "INDEED_SEARCHES", [
-        {"term": "react developer", "location": "Cairo", "country": "egypt", "remote": False},
-        {"term": "frontend developer", "location": "Cairo", "country": "egypt", "remote": False},
-        {"term": "react developer", "location": "", "country": "usa", "remote": True},
-    ])
+def _parse_card(card, default_country="Egypt"):
+    try:
+        # استخراج معرف الوظيفة
+        jk = card.get("data-jk")
+        t_tag = card.select_one("h2.jobTitle a, a[data-jk], h2 a")
+        if not t_tag:
+            return None
+
+        if not jk:
+            jk = t_tag.get("data-jk") or card.get("data-mobtk")
+        
+        href = t_tag.get("href", "")
+        if href.startswith("/"):
+            href = "https://www.indeed.com" + href
+        elif not href and jk:
+            href = f"https://www.indeed.com/viewjob?jk={jk}"
+
+        if not jk:
+            m = re.search(r"jk=([a-zA-Z0-9]+)", href)
+            jk = m.group(1) if m else href
+
+        title = t_tag.get_text(" ", strip=True)
+        # إزالة بادئة New لو وجدت
+        title = re.sub(r"^new\s+", "", title, flags=re.I).strip()
+
+        comp_tag = card.select_one("[data-testid='company-name'], .companyName, .company")
+        company = comp_tag.get_text(" ", strip=True) if comp_tag else "Company"
+
+        loc_tag = card.select_one("[data-testid='text-location'], .companyLocation, .location")
+        location = loc_tag.get_text(" ", strip=True) if loc_tag else default_country
+
+        # استخراج تاريخ ووقت النشر
+        date_tag = card.select_one("[data-testid='myJobsStateDate'], .date, .underShelfFooter .date")
+        posted_text = date_tag.get_text(" ", strip=True) if date_tag else "Recently"
+        posted_text = re.sub(r"^(posted|employer|active)\s+", "", posted_text, flags=re.I).strip()
+
+        age = filters.age_minutes(posted_text)
+        if age is not None and age > config.MAX_AGE_MINUTES:
+            return None
+
+        # استخراج الراتب من كارت إنديد إن وجد
+        salary_tag = card.select_one("[data-testid='attribute_snippet_testid'], .salary-snippet-container")
+        salary = salary_tag.get_text(" ", strip=True) if salary_tag else ""
+        if not salary:
+            salary = filters.extract_salary(type("Dummy", (), {"title": title, "location": location, "description": ""})())
+
+        # مقتطف الوصف
+        snippet_tag = card.select_one(".job-snippet, .underShelfFooter")
+        desc = snippet_tag.get_text(" ", strip=True) if snippet_tag else f"{title} at {company}"
+
+        return Job(
+            source="indeed",
+            id=str(jk),
+            title=title,
+            company=company,
+            location=location,
+            url=href,
+            posted_text=posted_text,
+            description=desc,
+            salary=salary,
+            country=default_country
+        )
+    except Exception as e:
+        log.debug("Indeed card parse error: %s", e)
+        return None
+
+def fetch():
+    try:
+        from curl_cffi import requests as cr
+    except ImportError:
+        import requests as cr
+
+    headers = {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    }
+
+    # إضافة كوكيز حساب Indeed إن توفرت
+    indeed_cookie = getattr(config, "INDEED_COOKIE", "")
+    if indeed_cookie:
+        headers["Cookie"] = indeed_cookie
 
     out = []
-    seen_ids = set()
+    seen = set()
 
-    for s in searches:
+    for target in SEARCH_TARGETS:
         try:
-            params = {
-                "site_name": ["indeed"],
-                "search_term": s["term"],
-                "results_wanted": 10,
-                "country_indeed": s.get("country", "egypt"),
-            }
-            if s.get("location"):
-                params["location"] = s["location"]
-            if s.get("remote"):
-                params["is_remote"] = True
+            kwargs = {"headers": headers, "params": target["params"], "timeout": 12}
+            if hasattr(cr, "Session"):
+                r = cr.get(target["url"], impersonate="chrome124", **kwargs)
+            else:
+                r = cr.get(target["url"], **kwargs)
 
-            df = scrape_jobs(**params)
-            if df is None or len(df) == 0:
+            if r.status_code != 200:
+                log.info("Indeed '%s' status %s", target["url"], r.status_code)
                 continue
 
-            for _, row in df.iterrows():
-                jid = str(row.get("id") or "").replace("in-", "").strip()
-                if not jid or jid in seen_ids:
-                    continue
-                seen_ids.add(jid)
-
-                title = str(row.get("title") or "").strip()
-                company = str(row.get("company") or "Company").strip()
-                loc = str(row.get("location") or "Cairo, Egypt").strip()
-                url = str(row.get("job_url_direct") or row.get("job_url") or "").strip()
-                posted_at = str(row.get("date_posted") or "").strip()
-                desc = str(row.get("description") or "").strip()
-                is_remote = bool(row.get("is_remote")) or s.get("remote", False)
-
-                out.append(
-                    Job(
-                        source="indeed",
-                        id=jid,
-                        title=title,
-                        company=company,
-                        location=loc,
-                        url=url,
-                        posted_text="Recent",
-                        posted_at=posted_at,
-                        description=desc,
-                        remote_search=is_remote,
-                    )
-                )
+            soup = BeautifulSoup(r.text, "html.parser")
+            cards = soup.select(".job_seen_beacon, .result, [data-jk]")
+            for c in cards:
+                job = _parse_card(c, default_country=target["country"])
+                if job and job.id not in seen:
+                    seen.add(job.id)
+                    out.append(job)
         except Exception as e:
-            log.warning("Indeed search '%s' (%s) failed: %s", s.get("term"), s.get("country"), e)
+            log.warning("Indeed fetch error for %s: %s", target["url"], e)
 
     return out
-

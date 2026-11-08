@@ -17,6 +17,9 @@ def get_sources():
     if getattr(config, "ENABLE_INDEED", False):
         from sources import indeed
         s.append(("indeed", indeed.fetch))
+    if getattr(config, "ENABLE_BAYT", True):
+        from sources import bayt
+        s.append(("bayt", bayt.fetch))
     if config.ENABLE_LINKEDIN: s.append(("linkedin", linkedin.fetch))
     if config.ENABLE_WUZZUF:
         from sources import wuzzuf

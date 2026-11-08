@@ -23,8 +23,9 @@ export default function DashboardPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [stats, setStats] = useState(INITIAL_STATS);
   const [config, setConfig] = useState(INITIAL_CONFIG);
-  const [jobs] = useState<Job[]>(INITIAL_JOBS);
+  const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
   const [activities, setActivities] = useState(INITIAL_ACTIVITIES);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
 
   // Filter States
   const [search, setSearch] = useState('');
@@ -37,6 +38,35 @@ export default function DashboardPage() {
 
   // Polling State
   const [isPolling, setIsPolling] = useState(false);
+
+  // Fetch live jobs from Redis via API
+  const fetchLiveJobs = async () => {
+    try {
+      setIsLoadingJobs(true);
+      const res = await fetch('/api/jobs');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.jobs) && data.jobs.length > 0) {
+          setJobs(data.jobs);
+          if (data.source === 'redis_live') {
+            setStats((prev) => ({
+              ...prev,
+              jobs_found_today: Math.max(prev.jobs_found_today, data.total),
+              last_poll: new Date().toISOString(),
+            }));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch live jobs:', e);
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchLiveJobs();
+  }, []);
 
   // Filter logic
   const filteredJobs = useMemo(() => {
@@ -97,6 +127,9 @@ export default function DashboardPage() {
           last_poll: new Date().toISOString(),
           jobs_found_today: prev.jobs_found_today + 1,
         }));
+
+        // Refresh live jobs from Redis feed
+        await fetchLiveJobs();
       }
     } catch {
       // silent fallback

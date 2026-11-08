@@ -1,0 +1,26 @@
+name: JobAlert Real-time Cron
+
+on:
+  schedule:
+    # Run every 10 minutes 24/7
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  poll:
+    name: Poll Job Boards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Trigger Vercel Poll Endpoint
+        run: |
+          echo "Starting real-time job boards poll..."
+          RESPONSE=$(curl -s -S --max-time 55 -X GET "https://jobalert-vert.vercel.app/api/poll?key=jobalert_secret_key_2026")
+          echo "Response from JobAlert: $RESPONSE"
+          # Check if the response contains valid JSON or success status
+          if echo "$RESPONSE" | grep -q '"candidates"'; then
+            echo "Poll completed successfully!"
+          else
+            echo "Notice: Poll returned: $RESPONSE"
+          fi
