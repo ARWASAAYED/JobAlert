@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { INITIAL_JOBS } from '@/lib/mock-data';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
