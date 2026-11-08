@@ -14,6 +14,9 @@ def get_sources():
     if getattr(config, "ENABLE_JOBICY", True):
         from sources import jobicy
         s.append(("jobicy", jobicy.fetch))
+    if getattr(config, "ENABLE_INDEED", True):
+        from sources import indeed
+        s.append(("indeed", indeed.fetch))
     if config.ENABLE_LINKEDIN: s.append(("linkedin", linkedin.fetch))
     if config.ENABLE_WUZZUF:
         from sources import wuzzuf

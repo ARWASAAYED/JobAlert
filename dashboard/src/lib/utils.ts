@@ -31,6 +31,13 @@ export function sourceBadgeColor(source: string): { bg: string; text: string; bo
         border: 'border-blue-500/30',
         dot: 'bg-blue-500',
       };
+    case 'indeed':
+      return {
+        bg: 'bg-indigo-500/10',
+        text: 'text-indigo-400',
+        border: 'border-indigo-500/30',
+        dot: 'bg-indigo-500',
+      };
     case 'remoteok':
       return {
         bg: 'bg-emerald-500/10',

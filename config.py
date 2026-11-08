@@ -46,11 +46,18 @@ LINKEDIN_SEARCHES = [
 ]
 
 ENABLE_LINKEDIN = True
+ENABLE_INDEED = os.getenv("ENABLE_INDEED", "1") == "1"
 ENABLE_FREEHIRE = os.getenv("ENABLE_FREEHIRE", "1") == "1"
 ENABLE_JOBICY = os.getenv("ENABLE_JOBICY", "1") == "1"
 ENABLE_WUZZUF = os.getenv("ENABLE_WUZZUF", "0" if os.getenv("VERCEL") else "1") == "1"
 ENABLE_REMOTEOK = True
 ENABLE_WWR = True
+
+INDEED_SEARCHES = [
+    {"term": "react developer", "location": "Cairo", "country": "egypt", "remote": False},
+    {"term": "frontend developer", "location": "Cairo", "country": "egypt", "remote": False},
+    {"term": "react developer", "location": "", "country": "usa", "remote": True},
+]
 
 FREEHIRE_QUERIES = ["React", "Frontend", "Full Stack", "Next.js", "Web Developer"]
 JOBICY_TAGS = ["react", "frontend", "full-stack", "javascript"]

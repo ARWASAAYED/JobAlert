@@ -28,6 +28,7 @@ export function FiltersPanel({
   const sources = [
     { id: 'all', label: 'All Sources' },
     { id: 'linkedin', label: 'LinkedIn' },
+    { id: 'indeed', label: 'Indeed' },
     { id: 'remoteok', label: 'RemoteOK' },
     { id: 'wwr', label: 'WWR' },
     { id: 'wuzzuf', label: 'Wuzzuf' },

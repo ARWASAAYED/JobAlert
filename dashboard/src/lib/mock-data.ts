@@ -1,11 +1,11 @@
 import { Job, BotStats, Activity, BotConfig } from '@/types';
 
 export const INITIAL_STATS: BotStats = {
-  jobs_found_today: 46,
-  jobs_found_week: 112,
-  alerts_sent: 10,
-  sources_active: 7,
-  sources_total: 7,
+  jobs_found_today: 58,
+  jobs_found_week: 135,
+  alerts_sent: 14,
+  sources_active: 8,
+  sources_total: 8,
   last_poll: '2026-11-07T19:25:00.000Z',
   bot_username: 'MyFuckingJobAlertbot',
   is_online: true,
@@ -19,6 +19,7 @@ export const INITIAL_CONFIG: BotConfig = {
   smtp_user: '',
   sources: {
     linkedin: true,
+    indeed: true,
     remoteok: true,
     wwr: true,
     wuzzuf: false,
@@ -40,6 +41,26 @@ export const INITIAL_CONFIG: BotConfig = {
 };
 
 export const INITIAL_JOBS: Job[] = [
+  {
+    id: 'ind-pwc-grad',
+    source: 'indeed',
+    title: 'Full Stack Developer - Graduate Program',
+    company: 'PwC Egypt',
+    location: 'Cairo, Egypt',
+    url: 'https://eg.indeed.com/viewjob?jk=etic-pwc-grad',
+    posted_text: 'Just now',
+    description: 'PwC Emerging Technology Innovation Center (ETIC) is looking for Graduate Full Stack Developers with strong foundation in React, Node.js, and modern web application development.',
+    remote: false,
+    work_type: 'On-site',
+    country: '🇪🇬 Egypt',
+    matched_at: '2026-11-08T02:00:00.000Z',
+    match_score: 96,
+    verdict: 'Strong Fit',
+    matched_keywords: ['React', 'Node.js', 'Full Stack', 'Graduate', 'Clean Code'],
+    missing_keywords: [],
+    cv_suggestions: ['Graduate program: Lead with your DEY HireReady NTI open source and full stack projects.'],
+    cv_generated: true,
+  },
   {
     id: '4485506218',
     source: 'linkedin',

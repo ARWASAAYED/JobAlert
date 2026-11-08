@@ -2,7 +2,7 @@ export type WorkType = 'Remote' | 'Hybrid' | 'On-site' | 'Remote / Hybrid' | 'Hy
 
 export interface Job {
   id: string;
-  source: 'linkedin' | 'remoteok' | 'wwr' | 'wuzzuf' | 'remotive' | 'freehire' | 'jobicy' | string;
+  source: 'linkedin' | 'indeed' | 'remoteok' | 'wwr' | 'wuzzuf' | 'remotive' | 'freehire' | 'jobicy' | string;
   title: string;
   company: string;
   location: string;
@@ -42,6 +42,7 @@ export interface BotConfig {
   smtp_user?: string;
   sources: {
     linkedin: boolean;
+    indeed: boolean;
     remoteok: boolean;
     wwr: boolean;
     wuzzuf: boolean;
