@@ -12,65 +12,181 @@
   },
   "base_summary": "Front-End Developer with hands-on experience building scalable, responsive web applications using React.js, Next.js, and TypeScript, plus full-stack exposure with Node.js, REST APIs, authentication, role-based access control, and SQL/NoSQL databases. Focused on clean code, performance, and maintainable software.",
   "experience": [
-    {"id": "exp_petra", "title": "Full-Stack Developer Intern", "org": "Petra Software Company", "dates": "02/2026 - 03/2026",
-     "bullets": [
-       "Developed a full-stack multi-portal web platform for administrators, customers, and service providers using React.js, Node.js, and MySQL in an Agile environment.",
-       "Built and integrated 25+ RESTful APIs for authentication, orders, services, and management operations.",
-       "Optimized frontend performance and API handling, reducing unnecessary requests by 40%.",
-       "Improved responsiveness using lazy loading, reusable components, and Redux Toolkit, achieving Lighthouse scores above 90.",
-       "Enhanced performance with optimized MySQL and modular architecture, maintaining response times under 250ms."]},
-    {"id": "exp_nti", "title": "Open-Source Applications Developer", "org": "DEY HireReady (NTI)", "dates": "10/2025 - 01/2026",
-     "bullets": [
-       "Developed full-stack applications using Next.js, React.js, Node.js, and modern JavaScript.",
-       "Designed and integrated REST APIs with MongoDB databases.",
-       "Delivered 3 real-world applications (dashboard, Doctor Appointment Booking System, and community platform) while collaborating in Agile teams using GitHub and CI/CD workflows."]},
-    {"id": "exp_dep", "title": "React Web Developer", "org": "Digital Egypt Pioneers Initiative", "dates": "04/2024 - 10/2024",
-     "bullets": [
-       "Developed responsive React.js applications using HTML5, CSS3, JavaScript, TypeScript, and Bootstrap.",
-       "Built reusable UI components and integrated REST APIs; used Git/GitHub for version control.",
-       "Completed a team-based capstone project using Agile development practices."]}
+    {
+      "id": "exp_petra",
+      "title": "Full-Stack Developer Intern",
+      "org": "Petra Software Company",
+      "dates": "02/2026 - 03/2026",
+      "bullets": [
+        "Developed a full-stack multi-portal web platform for administrators, customers, and service providers using React.js, Node.js, and MySQL in an Agile environment.",
+        "Built and integrated 25+ RESTful APIs for authentication, orders, services, and management operations.",
+        "Optimized frontend performance and API handling, reducing unnecessary requests by 40%.",
+        "Improved responsiveness using lazy loading, reusable components, and Redux Toolkit, achieving Lighthouse scores above 90.",
+        "Enhanced performance with optimized MySQL and modular architecture, maintaining response times under 250ms."
+      ]
+    },
+    {
+      "id": "exp_nti",
+      "title": "Open-Source Applications Developer",
+      "org": "DEY HireReady (NTI)",
+      "dates": "10/2025 - 01/2026",
+      "bullets": [
+        "Developed full-stack applications using Next.js, React.js, Node.js, and modern JavaScript.",
+        "Designed and integrated REST APIs with MongoDB databases.",
+        "Delivered 3 real-world applications (dashboard, Doctor Appointment Booking System, and community platform) while collaborating in Agile teams using GitHub and CI/CD workflows."
+      ]
+    },
+    {
+      "id": "exp_dep",
+      "title": "React Web Developer",
+      "org": "Digital Egypt Pioneers Initiative",
+      "dates": "04/2024 - 10/2024",
+      "bullets": [
+        "Developed responsive React.js applications using HTML5, CSS3, JavaScript, TypeScript, and Bootstrap.",
+        "Built reusable UI components and integrated REST APIs; used Git/GitHub for version control.",
+        "Completed a team-based capstone project using Agile development practices."
+      ]
+    }
   ],
   "projects": [
-    {"id": "proj_school", "name": "School Management Dashboard", "dates": "05/2026 - 08/2026", "links": "GitHub | Live",
-     "bullets": [
-       "Built a full-stack school management platform with 4 role-based portals: Admin, Teacher, Student, Parent.",
-       "Implemented authentication, RBAC, CRUD operations, and relational data management.",
-       "Developed responsive dashboards for analytics, scheduling, attendance, assignments, and media uploads."],
-     "tech": "Next.js, TypeScript, Prisma, PostgreSQL, Clerk, Tailwind CSS, Recharts, Cloudinary, Vercel, Zod"},
-    {"id": "proj_businessnet", "name": "BusinessNet", "dates": "12/2025 - 01/2026", "links": "GitHub | Live",
-     "bullets": [
-       "Developed a responsive social platform with posts, feeds, comments, hashtags, communities, and dashboard.",
-       "Implemented real-time messaging, notifications, media sharing, multilingual support, theme switching, and secure authentication.",
-       "Built a Stripe-powered promotion system for paid posts, with trends and professional networking features."],
-     "tech": "Next.js, React, TypeScript, Tailwind CSS, Zustand, Zod, Axios, Socket.io, Node.js, Express.js, MongoDB, JWT, Stripe"},
-    {"id": "proj_medicare", "name": "MediCare (Hospital Management System)", "dates": "08/2025 - 10/2025", "links": "GitHub | Live",
-     "bullets": [
-       "Developed a role-based hospital platform with patient booking, doctor schedules, and appointments.",
-       "Built an admin dashboard to manage doctors, patients, appointments, and medical categories."],
-     "tech": "React, Redux Toolkit, Tailwind CSS, Firebase, Axios, Vercel, Git"},
-    {"id": "proj_eventchamp", "name": "EventChamp", "dates": "05/2025", "links": "GitHub | Live",
-     "bullets": [
-       "Built a responsive platform for event browsing, ticket booking, calendar, and user profiles.",
-       "Built an interactive admin dashboard for managing events, venues, and speakers."],
-     "tech": "React, Context API, Bootstrap, REST API, Node.js, Mongoose, Git"},
-    {"id": "proj_shopease", "name": "ShopEase", "dates": "01/2025 - 03/2025", "links": "GitHub | Live",
-     "bullets": [
-       "Built a responsive UI for showing products, filtering, sorting, searching, reviews, and checkout."],
-     "tech": "React, Redux Toolkit, REST API, Axios, Formik, Yup, IndexedDB, Git, GitHub, Vercel"}
+    {
+      "id": "proj_school",
+      "name": "School Management Dashboard",
+      "dates": "05/2026 - 08/2026",
+      "links": "GitHub | Live",
+      "bullets": [
+        "Built a full-stack school management platform with 4 role-based portals: Admin, Teacher, Student, Parent.",
+        "Implemented authentication, RBAC, CRUD operations, and relational data management.",
+        "Developed responsive dashboards for analytics, scheduling, attendance, assignments, and media uploads."
+      ],
+      "tech": "Next.js, TypeScript, Prisma, PostgreSQL, Clerk, Tailwind CSS, Recharts, Cloudinary, Vercel, Zod"
+    },
+    {
+      "id": "proj_businessnet",
+      "name": "BusinessNet",
+      "dates": "12/2025 - 01/2026",
+      "links": "GitHub | Live",
+      "bullets": [
+        "Developed a responsive social platform with posts, feeds, comments, hashtags, communities, and dashboard.",
+        "Implemented real-time messaging, notifications, media sharing, multilingual support, theme switching, and secure authentication.",
+        "Built a Stripe-powered promotion system for paid posts, with trends and professional networking features."
+      ],
+      "tech": "Next.js, React, TypeScript, Tailwind CSS, Zustand, Zod, Axios, Socket.io, Node.js, Express.js, MongoDB, JWT, Stripe"
+    },
+    {
+      "id": "proj_medicare",
+      "name": "MediCare (Hospital Management System)",
+      "dates": "08/2025 - 10/2025",
+      "links": "GitHub | Live",
+      "bullets": [
+        "Developed a role-based hospital platform with patient booking, doctor schedules, and appointments.",
+        "Built an admin dashboard to manage doctors, patients, appointments, and medical categories."
+      ],
+      "tech": "React, Redux Toolkit, Tailwind CSS, Firebase, Axios, Vercel, Git"
+    },
+    {
+      "id": "proj_eventchamp",
+      "name": "EventChamp",
+      "dates": "05/2025",
+      "links": "GitHub | Live",
+      "bullets": [
+        "Built a responsive platform for event browsing, ticket booking, calendar, and user profiles.",
+        "Built an interactive admin dashboard for managing events, venues, and speakers."
+      ],
+      "tech": "React, Context API, Bootstrap, REST API, Node.js, Mongoose, Git"
+    },
+    {
+      "id": "proj_shopease",
+      "name": "ShopEase",
+      "dates": "01/2025 - 03/2025",
+      "links": "GitHub | Live",
+      "bullets": [
+        "Built a responsive UI for showing products, filtering, sorting, searching, reviews, and checkout."
+      ],
+      "tech": "React, Redux Toolkit, REST API, Axios, Formik, Yup, IndexedDB, Git, GitHub, Vercel"
+    }
   ],
   "education": {
-    "degree": "B.Sc. in Computer Science & Information Systems", "school": "Minya University", "dates": "2021 - 2025",
+    "degree": "B.Sc. in Computer Science & Information Systems",
+    "school": "Minya University",
+    "dates": "2021 - 2025",
     "details": "Graduation Project: platform with maps, real-time chat, filters, and an AI assistant."
   },
   "skills": {
-    "Front-End": ["React.js", "Next.js", "JavaScript (ES6+)", "TypeScript", "HTML5", "CSS3", "React Testing Library", "Jest", "Socket.IO"],
-    "UI & Styling": ["Tailwind CSS", "Material UI", "Bootstrap", "Figma"],
-    "State & Data Fetching": ["TanStack Query", "Zustand", "React Context API", "Redux Toolkit"],
-    "Backend & APIs": ["Node.js", "Express.js", "NestJS", "RESTful APIs", "API Design", "Authentication", "Authorization", "JWT", "Bcrypt", "Middleware", "Stripe Payment Integration"],
-    "Databases": ["MongoDB", "Mongoose", "MySQL", "PostgreSQL", "Prisma", "IndexedDB"],
-    "Tools & DevOps": ["Git", "GitHub", "Postman", "Cloudinary", "Vercel", "cPanel", "CI/CD"],
-    "Engineering Practices": ["OOP", "Data Structures & Algorithms", "Clean Code", "Modular Architecture", "Problem Solving", "Agile/Scrum"],
-    "AI": ["AI-assisted Development", "AI Integration", "Prompt Engineering"]
+    "Front-End": [
+      "React.js",
+      "Next.js",
+      "JavaScript (ES6+)",
+      "TypeScript",
+      "HTML5",
+      "CSS3",
+      "React Testing Library",
+      "Jest",
+      "Socket.IO"
+    ],
+    "UI & Styling": [
+      "Tailwind CSS",
+      "Material UI",
+      "Bootstrap",
+      "Figma"
+    ],
+    "State & Data Fetching": [
+      "TanStack Query",
+      "Zustand",
+      "React Context API",
+      "Redux Toolkit"
+    ],
+    "Backend & APIs": [
+      "Node.js",
+      "Express.js",
+      "NestJS",
+      "RESTful APIs",
+      "API Design",
+      "Authentication",
+      "Authorization",
+      "JWT",
+      "Bcrypt",
+      "Middleware",
+      "Stripe Payment Integration"
+    ],
+    "Databases": [
+      "MongoDB",
+      "Mongoose",
+      "MySQL",
+      "PostgreSQL",
+      "Prisma",
+      "IndexedDB"
+    ],
+    "Tools & DevOps": [
+      "Git",
+      "GitHub",
+      "Postman",
+      "Cloudinary",
+      "Vercel",
+      "cPanel",
+      "CI/CD"
+    ],
+    "Engineering Practices": [
+      "OOP",
+      "Data Structures & Algorithms",
+      "Clean Code",
+      "Modular Architecture",
+      "Problem Solving",
+      "Agile/Scrum"
+    ],
+    "AI": [
+      "AI-assisted Development",
+      "AI Integration",
+      "Prompt Engineering"
+    ]
   },
-  "certificates": ["Open-Source Applications (DEY HireReady NTI)", "React Web Developer (Digital Egypt Pioneers Initiative)"]
+  "certificates": [
+    "Open-Source Applications (DEY HireReady NTI)",
+    "React Web Developer (Digital Egypt Pioneers Initiative)"
+  ],
+  "_resume_meta": {
+    "source_file": "e:\\test\\resumes\\arwa-ahmed--full-stack--v20261020.pdf",
+    "sha256": "daa4fc3fa9411b501c726c4d0b7b0685e868cb2524ddeb37ac9ffbc1851ef52b",
+    "char_count": 5147
+  }
 }

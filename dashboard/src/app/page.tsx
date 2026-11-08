@@ -17,19 +17,19 @@ import {
   INITIAL_ACTIVITIES,
 } from '@/lib/mock-data';
 import { Job } from '@/types';
-import { Sparkles, Briefcase, RefreshCw, Layers } from 'lucide-react';
+import { Briefcase } from 'lucide-react';
 
 export default function DashboardPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [stats, setStats] = useState(INITIAL_STATS);
   const [config, setConfig] = useState(INITIAL_CONFIG);
-  const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
+  const [jobs] = useState<Job[]>(INITIAL_JOBS);
   const [activities, setActivities] = useState(INITIAL_ACTIVITIES);
 
   // Filter States
   const [search, setSearch] = useState('');
   const [selectedSource, setSelectedSource] = useState('all');
-  const [remoteOnly, setRemoteOnly] = useState(false);
+  const [workTypeFilter, setWorkTypeFilter] = useState('all');
   const [minScore, setMinScore] = useState(0);
 
   // Active Job for Modal
@@ -48,7 +48,8 @@ export default function DashboardPage() {
         const matchesComp = job.company.toLowerCase().includes(query);
         const matchesLoc = job.location.toLowerCase().includes(query);
         const matchesDesc = job.description.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesComp && !matchesLoc && !matchesDesc) return false;
+        const matchesCountry = (job.country || '').toLowerCase().includes(query);
+        if (!matchesTitle && !matchesComp && !matchesLoc && !matchesDesc && !matchesCountry) return false;
       }
 
       // Source filter
@@ -56,9 +57,12 @@ export default function DashboardPage() {
         return false;
       }
 
-      // Remote filter
-      if (remoteOnly && !job.remote) {
-        return false;
+      // Work type filter
+      if (workTypeFilter !== 'all') {
+        const wt = (job.work_type || '').toLowerCase();
+        if (workTypeFilter === 'remote' && !wt.includes('remote')) return false;
+        if (workTypeFilter === 'hybrid' && !wt.includes('hybrid')) return false;
+        if (workTypeFilter === 'onsite' && !wt.includes('on-site') && !wt.includes('onsite') && wt.includes('remote')) return false;
       }
 
       // Min score
@@ -68,7 +72,7 @@ export default function DashboardPage() {
 
       return true;
     });
-  }, [jobs, search, selectedSource, remoteOnly, minScore]);
+  }, [jobs, search, selectedSource, workTypeFilter, minScore]);
 
   // Handle Manual Poll Trigger
   const handleTriggerPoll = async () => {
@@ -82,7 +86,7 @@ export default function DashboardPage() {
         const newAct = {
           id: `act-${Date.now()}`,
           type: 'poll' as const,
-          message: 'Manual scraping pass completed: verified all 4 job boards.',
+          message: 'Manual scraping pass completed: verified all 7 job boards.',
           timestamp: new Date().toISOString(),
         };
         setActivities((prev) => [newAct, ...prev]);
@@ -186,8 +190,8 @@ export default function DashboardPage() {
               setSearch={setSearch}
               selectedSource={selectedSource}
               setSelectedSource={setSelectedSource}
-              remoteOnly={remoteOnly}
-              setRemoteOnly={setRemoteOnly}
+              workTypeFilter={workTypeFilter}
+              setWorkTypeFilter={setWorkTypeFilter}
               minScore={minScore}
               setMinScore={setMinScore}
             />

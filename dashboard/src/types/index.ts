@@ -1,18 +1,25 @@
+export type WorkType = 'Remote' | 'Hybrid' | 'On-site' | 'Remote / Hybrid' | 'Hybrid / On-site' | string;
+
 export interface Job {
   id: string;
-  source: 'linkedin' | 'remoteok' | 'wwr' | 'wuzzuf';
+  source: 'linkedin' | 'remoteok' | 'wwr' | 'wuzzuf' | 'remotive' | 'freehire' | 'jobicy' | string;
   title: string;
   company: string;
   location: string;
   url: string;
   posted_text: string;
+  posted_at?: string;
   description: string;
   remote: boolean;
+  work_type: WorkType;
+  country: string;
   applicants?: string;
   matched_at?: string;
   match_score?: number;
+  verdict?: string;
   matched_keywords?: string[];
   missing_keywords?: string[];
+  cv_suggestions?: string[];
   cv_generated?: boolean;
 }
 
@@ -38,6 +45,9 @@ export interface BotConfig {
     remoteok: boolean;
     wwr: boolean;
     wuzzuf: boolean;
+    remotive: boolean;
+    freehire: boolean;
+    jobicy: boolean;
   };
   filters: {
     title_must: string[];
@@ -64,4 +74,3 @@ export interface TelegramBotInfo {
   username: string;
   can_join_groups: boolean;
 }
-

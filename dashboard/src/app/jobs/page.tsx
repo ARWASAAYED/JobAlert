@@ -13,10 +13,10 @@ import Link from 'next/link';
 
 export default function JobsPage() {
   const [collapsed, setCollapsed] = useState(false);
-  const [jobs, setJobs] = useState<Job[]>(INITIAL_JOBS);
+  const [jobs] = useState<Job[]>(INITIAL_JOBS);
   const [search, setSearch] = useState('');
   const [selectedSource, setSelectedSource] = useState('all');
-  const [remoteOnly, setRemoteOnly] = useState(false);
+  const [workTypeFilter, setWorkTypeFilter] = useState('all');
   const [minScore, setMinScore] = useState(0);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
@@ -28,14 +28,20 @@ export default function JobsPage() {
         const matchesComp = job.company.toLowerCase().includes(query);
         const matchesLoc = job.location.toLowerCase().includes(query);
         const matchesDesc = job.description.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesComp && !matchesLoc && !matchesDesc) return false;
+        const matchesCountry = (job.country || '').toLowerCase().includes(query);
+        if (!matchesTitle && !matchesComp && !matchesLoc && !matchesDesc && !matchesCountry) return false;
       }
       if (selectedSource !== 'all' && job.source !== selectedSource) return false;
-      if (remoteOnly && !job.remote) return false;
+      if (workTypeFilter !== 'all') {
+        const wt = (job.work_type || '').toLowerCase();
+        if (workTypeFilter === 'remote' && !wt.includes('remote')) return false;
+        if (workTypeFilter === 'hybrid' && !wt.includes('hybrid')) return false;
+        if (workTypeFilter === 'onsite' && !wt.includes('on-site') && !wt.includes('onsite') && wt.includes('remote')) return false;
+      }
       if (minScore > 0 && (job.match_score || 0) < minScore) return false;
       return true;
     });
-  }, [jobs, search, selectedSource, remoteOnly, minScore]);
+  }, [jobs, search, selectedSource, workTypeFilter, minScore]);
 
   return (
     <div className="min-h-screen bg-[#090a10] text-zinc-100 flex">
@@ -72,7 +78,7 @@ export default function JobsPage() {
                 Job Feed Explorer
               </h1>
               <p className="text-xs text-zinc-400">
-                All junior developer positions captured across LinkedIn, RemoteOK, WeWorkRemotely, and Wuzzuf.
+                All junior developer positions captured across LinkedIn, RemoteOK, WeWorkRemotely, Wuzzuf, Remotive, Freehire, and Jobicy.
               </p>
             </div>
 
@@ -86,8 +92,8 @@ export default function JobsPage() {
             setSearch={setSearch}
             selectedSource={selectedSource}
             setSelectedSource={setSelectedSource}
-            remoteOnly={remoteOnly}
-            setRemoteOnly={setRemoteOnly}
+            workTypeFilter={workTypeFilter}
+            setWorkTypeFilter={setWorkTypeFilter}
             minScore={minScore}
             setMinScore={setMinScore}
           />
@@ -111,4 +117,3 @@ export default function JobsPage() {
     </div>
   );
 }
-

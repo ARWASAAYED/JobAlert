@@ -1,6 +1,7 @@
 import html, requests
+from urllib.parse import quote
 import config
-from filters import work_type
+from filters import work_type, extract_country
 
 API = "https://api.telegram.org/bot{}/{}"
 
@@ -23,14 +24,18 @@ def send_text(text):
 def send_job(job):
     e = html.escape
     
-    # Select appropriate flag
-    loc_lower = (job.location or "").lower()
-    if any(k in loc_lower for k in ["egypt", "cairo", "giza", "alexandria", "مصر", "القاهرة"]) or job.source == "wuzzuf":
+    # Detect work type and country
+    wt = getattr(job, "work_type", "") or work_type(job)
+    country = getattr(job, "country", "") or extract_country(job)
+    
+    # Select appropriate flag from country
+    if "🇪🇬" in country:
         flag = "🇪🇬"
-    elif job.remote_search or any(k in loc_lower for k in ["remote", "worldwide", "anywhere", "global"]):
+    elif "🌐" in country:
         flag = "🌐"
     else:
-        flag = "🌍"
+        parts = country.split(" ")
+        flag = parts[0] if parts and len(parts[0]) <= 4 else "🌍"
 
     title = e(job.title)
     comp = e(job.company or "Company")
@@ -38,26 +43,54 @@ def send_job(job):
     posted = e(job.posted_at or job.posted_text or "Just now")
     url = job.url
 
-    # Direct links in message body
-    if job.source == "linkedin":
-        li_url = f"https://linkedin.com/jobs/view/{job.id}"
-        links_block = f'<a href="{e(url)}">View</a>\n<a href="{e(li_url)}">Linkedin</a>'
+    # Work type badge (Remote / Hybrid / On-site)
+    wt_lower = wt.lower()
+    if "remote" in wt_lower:
+        wt_badge = "🏠 Remote"
+    elif "hybrid" in wt_lower:
+        wt_badge = "🔄 Hybrid"
     else:
-        links_block = f'<a href="{e(url)}">View</a>\n<a href="{e(url)}">{e(job.source.capitalize())}</a>'
+        wt_badge = "🏢 On-site"
 
-    # Build the exact message format requested
+    # Score badge
+    score_badge = ""
+    score = getattr(job, "score", 0)
+    if score >= 85:
+        score_badge = f"🏆 <b>Strong Fit ({score}%)</b>\n"
+    elif score >= 70:
+        score_badge = f"🥈 <b>Good Fit ({score}%)</b>\n"
+    elif score >= 50:
+        score_badge = f"🥉 <b>Moderate Fit ({score}%)</b>\n"
+
+    # Direct link in message body
+    links_block = f'<a href="{e(url)}">View Job</a>'
+
+    # Build the message with Country, Work Type (On-site / Hybrid / Remote), Company, and Date
     lines = [
-        f"{flag} 🆕 {title}",
+        f"{flag} {score_badge}🆕 <b>{title}</b>",
         f"🏢 {comp}",
+        f"📍 {loc}",
+        f"🌍 {e(country)}  •  {wt_badge}",
         f"🕐 Posted {posted}",
         links_block,
-        f"{title} at {comp} — {loc} |",
     ]
 
-    # Clean inline buttons that always go directly to the job
-    keyboard = [[{"text": "⚡ View Job", "url": url}]]
-    if job.source == "linkedin":
-        keyboard[0].append({"text": "🔗 LinkedIn", "url": f"https://linkedin.com/jobs/view/{job.id}"})
+    # Clean inline buttons:
+    # 1. Direct Apply Job
+    # 2. Referral Button (instead of the redundant LinkedIn button)
+    company_name = job.company or ""
+    if company_name and company_name.lower() not in ["company", "confidential"]:
+        ref_query = quote(f"{company_name} recruiter OR engineer")
+    else:
+        ref_query = quote(f"{job.title} recruiter")
+    referral_url = f"https://www.linkedin.com/search/results/people/?keywords={ref_query}&origin=GLOBAL_SEARCH_HEADER"
+
+    keyboard = [
+        [
+            {"text": "⚡ Apply Job", "url": url},
+            {"text": "🤝 Referral", "url": referral_url}
+        ]
+    ]
 
     _post("sendMessage", chat_id=config.TELEGRAM_CHAT_ID, text="\n".join(lines), parse_mode="HTML",
           disable_web_page_preview=True,
@@ -79,17 +112,15 @@ def send_document(path, caption=""):
     r.raise_for_status()
 
 def send_followup(job, extras):
-    e = html.escape
-    t, ref = extras.get("tailored"), extras["ref"]
+    """
+    إرسال ملف الـ CV المخصص كملف فقط عند تفعيله.
+    تم إلغاء إرسال رسالة الريفرال النصية المنفصلة لأن الريفرال أصبح زر مباشر في نفس رسالة الوظيفة.
+    """
+    t = extras.get("tailored")
     if extras.get("docx"):
         cap = f"📄 CV مخصص لـ {job.title}"
         if t:
             cap += f"\n🎯 Match: {int(t.get('match_score', 0))}%"
             if t.get("missing_keywords"):
                 cap += "\n⚠️ مش عندك: " + ", ".join(t["missing_keywords"][:6])
-        send_document(extras["docx"], cap)
-    links = "\n".join(f'• <a href="{e(u)}">{e(n)}</a>' for n, u in ref["links"].items())
-    text = (f"🤝 <b>ريفرال — {e(job.company or '')}</b>\n{links}\n\n"
-            f"<b>Connection note</b> (اضغطي للنسخ):\n<code>{e(ref['note'])}</code>\n\n"
-            f"<b>رسالة الريفرال</b>:\n<code>{e(ref['message'])}</code>")
-    send_text(text[:4000])
+        send_document(extras["docx"], cap[:1000])

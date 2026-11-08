@@ -4,3 +4,5 @@ __pycache__/
 cv_out/
 seen.db
 .vercel/
+reports/
+*.csv

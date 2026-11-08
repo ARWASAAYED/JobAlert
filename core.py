@@ -1,6 +1,6 @@
-import logging
+import logging, os, json
 from concurrent.futures import ThreadPoolExecutor, wait
-import config, filters, notifier, emailer, cvgen, referral
+import config, filters, notifier, emailer, cvgen, referral, tracker, reporter
 from models import Job
 from sources import linkedin, remoteok, wwr, remotive
 
@@ -8,6 +8,12 @@ log = logging.getLogger("jobalert")
 
 def get_sources():
     s = []
+    if getattr(config, "ENABLE_FREEHIRE", True):
+        from sources import freehire
+        s.append(("freehire", freehire.fetch))
+    if getattr(config, "ENABLE_JOBICY", True):
+        from sources import jobicy
+        s.append(("jobicy", jobicy.fetch))
     if config.ENABLE_LINKEDIN: s.append(("linkedin", linkedin.fetch))
     if config.ENABLE_WUZZUF:
         from sources import wuzzuf
@@ -37,16 +43,70 @@ def enrich(job, dry=False):
         except Exception as e: log.error("email failed: %s", e)
     return extras
 
+def _export_to_dashboard(jobs):
+    dash_pub = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dashboard", "public")
+    if not os.path.exists(dash_pub):
+        return
+    dash_json_path = os.path.join(dash_pub, "jobs.json")
+    existing = []
+    if os.path.exists(dash_json_path):
+        try:
+            with open(dash_json_path, "r", encoding="utf-8") as f:
+                existing = json.load(f)
+        except Exception:
+            existing = []
+
+    seen_ids = {j.get("id") for j in existing if isinstance(j, dict)}
+    for j in jobs:
+        if j.id in seen_ids:
+            continue
+        existing.append({
+            "id": j.id,
+            "source": j.source,
+            "title": j.title,
+            "company": j.company,
+            "location": j.location,
+            "url": j.url,
+            "posted_text": j.posted_text or "Recently",
+            "posted_at": j.posted_at or "",
+            "description": j.description or "",
+            "remote": getattr(j, "remote_search", False),
+            "work_type": getattr(j, "work_type", "On-site"),
+            "country": getattr(j, "country", ""),
+            "match_score": getattr(j, "score", 0),
+            "verdict": getattr(j, "verdict", ""),
+            "matched_keywords": getattr(j, "strengths", []),
+            "missing_keywords": getattr(j, "gaps", []),
+            "cv_suggestions": getattr(j, "cv_suggestions", []),
+            "cv_generated": bool(getattr(j, "cv_suggestions", []))
+        })
+    existing.sort(key=lambda x: x.get("match_score", 0), reverse=True)
+    with open(dash_json_path, "w", encoding="utf-8") as f:
+        json.dump(existing, f, indent=2, ensure_ascii=False)
+
+
 def run_round(store, dry=False, pool=None, wait_timeout=None):
     stats = {"candidates": 0, "matched": [], "skipped": 0, "errors": {}}
+    matched_job_objects = []
     own = pool is None
     pool = pool or ThreadPoolExecutor(max_workers=3)
     futs = []
-    for name, fn in get_sources():
-        try:
-            jobs = fn()
-        except Exception as e:
-            stats["errors"][name] = str(e)[:200]; log.warning("%s failed: %s", name, e); continue
+
+    # Fetch all enabled job sources concurrently for lightning fast speed
+    sources = get_sources()
+    source_results = []
+    with ThreadPoolExecutor(max_workers=len(sources) or 1) as src_exec:
+        fut_map = {src_exec.submit(fn): name for name, fn in sources}
+        for fut in fut_map:
+            name = fut_map[fut]
+            try:
+                jobs = fut.result(timeout=30)
+                source_results.append((name, jobs))
+            except Exception as e:
+                stats["errors"][name] = str(e)[:200]
+                log.warning("%s failed: %s", name, e)
+
+    for name, jobs in source_results:
         stats["candidates"] += len(jobs)
         for job in jobs:
             if store.has(job.key):
@@ -58,6 +118,18 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
                 try: linkedin.fetch_description(job)
                 except Exception: pass
             if ok: ok, why = filters.full_ok(job)
+            if ok:
+                score, verdict, strengths, gaps, cv_suggs = filters.calculate_fit(job)
+                job.score = score
+                job.verdict = verdict
+                job.strengths = strengths
+                job.gaps = gaps
+                job.cv_suggestions = cv_suggs
+                # Populate work_type and country
+                job.work_type = filters.work_type(job)
+                job.country = filters.extract_country(job)
+                if score < getattr(config, "MIN_FIT_SCORE", 35):
+                    ok, why = False, f"low fit score ({score}%)"
             store.add(job.key)
             if not ok:
                 stats["skipped"] += 1; log.info("skip %s | %s (%s)", job.title, job.company, why); continue
@@ -65,9 +137,26 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
                 if not dry and notifier.enabled():
                     notifier.send_job(job)                 # التنبيه الفوري
                 stats["matched"].append(f"{job.title} | {job.company}")
+                matched_job_objects.append(job)
+                tracker.track_job(job.key, job.title, job.company, job.url, status="identified", fit_score=job.score)
                 futs.append(pool.submit(enrich, job, dry))
             except Exception as e:
                 log.error("alert failed: %s", e); store.remove(job.key)
+
+    # 1. Generate local daily reports (HTML & Markdown)
+    if matched_job_objects:
+        try:
+            rep_res = reporter.generate_reports(matched_job_objects, stats)
+            stats["reports"] = rep_res
+        except Exception as e:
+            log.warning("Report generation failed: %s", e)
+
+        # 2. Export live matches for Next.js Dashboard
+        try:
+            _export_to_dashboard(matched_job_objects)
+        except Exception as e:
+            log.warning("Dashboard export failed: %s", e)
+
     if wait_timeout is not None and futs:
         wait(futs, timeout=wait_timeout)
     if own:
@@ -80,6 +169,10 @@ def test_alert():
     job = Job(source="linkedin", id="4485506218", title="Shopify developer (TEST)", company="Republic- Job Company", location="Cairo, Egypt",
               url="https://www.linkedin.com/jobs/view/4485506218/", posted_text="Just now", posted_at=now_str,
               description="Shopify, Liquid, React, JavaScript, CSS. 0-2 years of experience. Cairo, Egypt.")
+    # Populate work_type and country for test too
+    job.work_type = filters.work_type(job)
+    job.country = filters.extract_country(job)
+    job.score, job.verdict, job.strengths, job.gaps, job.cv_suggestions = filters.calculate_fit(job)
     if notifier.enabled(): notifier.send_job(job)
     enrich(job)
     return {"test": "sent", "telegram": notifier.enabled(), "email": emailer.enabled(), "cv_ai": cvgen.enabled()}

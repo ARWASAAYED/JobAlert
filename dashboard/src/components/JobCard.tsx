@@ -8,11 +8,13 @@ import {
   Sparkles,
   ExternalLink,
   FileText,
-  CheckCircle2,
-  Share2,
+  Users,
+  Globe,
+  Home,
+  RefreshCw,
 } from 'lucide-react';
 import { Job } from '@/types';
-import { sourceBadgeColor } from '@/lib/utils';
+import { sourceBadgeColor, workTypeBadge } from '@/lib/utils';
 
 interface JobCardProps {
   job: Job;
@@ -21,18 +23,36 @@ interface JobCardProps {
 
 export function JobCard({ job, onOpenModal }: JobCardProps) {
   const badge = sourceBadgeColor(job.source);
+  const wt = workTypeBadge(job.work_type);
+
+  // Referral search URL
+  const referralUrl = job.company
+    ? `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
+        job.company + ' frontend engineer'
+      )}&network=%5B%22F%22%2C%22S%22%5D&origin=GLOBAL_SEARCH_HEADER`
+    : null;
 
   return (
     <div className="group relative flex flex-col justify-between rounded-2xl border border-[#212438] bg-[#11121d] p-5 shadow-lg transition-all duration-300 hover:border-indigo-500/40 hover:-translate-y-1 hover:shadow-indigo-500/10">
-      {/* Top Bar: Source badge + Match Score */}
+      {/* Top Bar: Source badge + Work Type + Match Score */}
       <div>
-        <div className="flex items-center justify-between gap-2">
-          {/* Source Badge */}
-          <div
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium capitalize ${badge.bg} ${badge.text} ${badge.border}`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
-            <span>{job.source}</span>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            {/* Source Badge */}
+            <div
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium capitalize ${badge.bg} ${badge.text} ${badge.border}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
+              <span>{job.source}</span>
+            </div>
+
+            {/* Work Type Badge */}
+            <div
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${wt.color}`}
+            >
+              <span>{wt.emoji}</span>
+              <span>{wt.label}</span>
+            </div>
           </div>
 
           {/* Match Score Badge */}
@@ -49,7 +69,7 @@ export function JobCard({ job, onOpenModal }: JobCardProps) {
           {job.title}
         </h3>
 
-        {/* Company & Location */}
+        {/* Company & Location & Country */}
         <div className="mt-2 space-y-1.5 text-xs text-zinc-400">
           <div className="flex items-center gap-1.5">
             <Building2 className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
@@ -59,6 +79,12 @@ export function JobCard({ job, onOpenModal }: JobCardProps) {
             <MapPin className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
             <span className="truncate">{job.location}</span>
           </div>
+          {job.country && (
+            <div className="flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
+              <span className="font-medium text-zinc-300">{job.country}</span>
+            </div>
+          )}
         </div>
 
         {/* Matched Keywords Tags */}
@@ -89,11 +115,25 @@ export function JobCard({ job, onOpenModal }: JobCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* View Tailored CV Button */}
+          {/* Find Referral Button */}
+          {referralUrl && (
+            <a
+              href={referralUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 rounded-lg border border-[#252840] bg-[#151726] hover:bg-[#1d2036] px-2 py-1.5 text-xs font-medium text-amber-300 transition-colors"
+              title={`Find referral at ${job.company}`}
+            >
+              <Users className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Referral</span>
+            </a>
+          )}
+
+          {/* View AI CV / Details Button */}
           <button
             onClick={() => onOpenModal(job)}
             className="flex items-center gap-1.5 rounded-lg border border-[#252840] bg-[#151726] hover:bg-[#1d2036] px-2.5 py-1.5 text-xs font-medium text-indigo-300 transition-colors cursor-pointer"
-            title="View AI Tailored CV & Referral Message"
+            title="View AI Tailored CV & Details"
           >
             <FileText className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">AI CV</span>
@@ -114,4 +154,3 @@ export function JobCard({ job, onOpenModal }: JobCardProps) {
     </div>
   );
 }
-

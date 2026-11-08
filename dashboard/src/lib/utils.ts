@@ -53,6 +53,27 @@ export function sourceBadgeColor(source: string): { bg: string; text: string; bo
         border: 'border-orange-500/30',
         dot: 'bg-orange-500',
       };
+    case 'remotive':
+      return {
+        bg: 'bg-purple-500/10',
+        text: 'text-purple-400',
+        border: 'border-purple-500/30',
+        dot: 'bg-purple-500',
+      };
+    case 'freehire':
+      return {
+        bg: 'bg-cyan-500/10',
+        text: 'text-cyan-400',
+        border: 'border-cyan-500/30',
+        dot: 'bg-cyan-500',
+      };
+    case 'jobicy':
+      return {
+        bg: 'bg-rose-500/10',
+        text: 'text-rose-400',
+        border: 'border-rose-500/30',
+        dot: 'bg-rose-500',
+      };
     default:
       return {
         bg: 'bg-zinc-500/10',
@@ -63,3 +84,13 @@ export function sourceBadgeColor(source: string): { bg: string; text: string; bo
   }
 }
 
+export function workTypeBadge(workType: string): { emoji: string; label: string; color: string } {
+  const wt = (workType || '').toLowerCase();
+  if (wt.includes('remote')) {
+    return { emoji: '🏠', label: 'Remote', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' };
+  }
+  if (wt.includes('hybrid')) {
+    return { emoji: '🔄', label: 'Hybrid', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
+  }
+  return { emoji: '🏢', label: 'On-site', color: 'text-sky-400 bg-sky-500/10 border-sky-500/30' };
+}
