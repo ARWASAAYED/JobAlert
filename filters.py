@@ -72,6 +72,52 @@ def age_label(job):
         return f"{int(age)} min ago"
     return f"{age/60:.1f} h ago"
 
+# قائمة الشركات والوكالات المزعجة / الوهمية (مأخوذة من RTJobs-main)
+BLOCKED_COMPANIES = [
+    "hire feed", "telus digital", "jobs ai", "hired", "micro1", "crossing hurdles",
+    "mindrift", "turing", "quik hire staffing", "alignerr", "outlier", "dataannotation",
+    "remotasks", "appen", "oneforma", "welocalize", "invisible technologies", "cyberbacker"
+]
+
+def company_ok(job):
+    """استبعاد الشركات الوهمية والمجمعات الإعلانية غير الموثوقة."""
+    c = (job.company or "").lower().strip()
+    if any(b in c for b in BLOCKED_COMPANIES):
+        return False, f"blocked spam/agency company ({job.company})"
+    return True, ""
+
+def extract_salary(job):
+    """استخراج الراتب بدقة إن وُجد (USD, EGP, EUR, GBP, SAR, AED)."""
+    text = f"{job.title} {job.location} {job.description or ''}"
+    # 1. USD: $1,000 - $3,000, $40k - $60k, $25/hr
+    m_usd = re.search(r"(\$\s?[\d,]+(?:\.\d+)?\s*(?:k|K)?(?:\s*(?:-|to|–)\s*\$?\s*[\d,]+(?:\.\d+)?\s*(?:k|K)?)?(?:\s*(?:/|per)\s*(?:hr|hour|mo|month|yr|year))?)", text)
+    if m_usd:
+        return m_usd.group(1).strip()
+    # 2. EGP: 15,000 - 25,000 EGP, ج.م
+    m_egp = re.search(r"([\d,]+\s*(?:-|to|–)\s*[\d,]+\s*(?:EGP|LE|ج\.م|جنيه))", text, re.I)
+    if m_egp:
+        return m_egp.group(1).strip()
+    # 3. EUR / GBP: €2,000 - €3,500, £30k
+    m_eur = re.search(r"([€£]\s?[\d,]+(?:\s*(?:-|to|–)\s*[€£]?\s*[\d,]+)?(?:\s*(?:k|K))?(?:\s*(?:/|per)\s*(?:mo|yr))?)", text)
+    if m_eur:
+        return m_eur.group(1).strip()
+    # 4. SAR / AED: 5,000 - 10,000 SAR/AED
+    m_gulf = re.search(r"([\d,]+\s*(?:-|to|–)\s*[\d,]+\s*(?:SAR|AED|ريال|درهم))", text, re.I)
+    if m_gulf:
+        return m_gulf.group(1).strip()
+    return ""
+
+def extract_career_level(job):
+    """تحديد المستوى الوظيفي بدقة من العنوان والوصف."""
+    text = f"{job.title} {job.description or ''}".lower()
+    if any(w in text for w in ["fresh graduate", "entry level", "entry-level", "junior", "jr.", "jr ", "مبتدئ", "حديث التخرج", "graduate program", "trainee"]):
+        return "🌱 Junior / Entry Level"
+    if any(w in text for w in ["mid-level", "mid level", "intermediate", "2-3 years"]):
+        return "⚡ Mid-Level"
+    if any(w in text for w in ["senior", "sr.", "lead", "principal"]):
+        return "🔥 Senior"
+    return "🌱 Entry Level"
+
 def title_ok(job):
     t = " " + job.title.lower() + " "
     
@@ -109,6 +155,11 @@ def full_ok(job):
 
     # 2. فحص العنوان
     ok, why = title_ok(job)
+    if not ok:
+        return ok, why
+
+    # 2b. استبعاد الشركات الوهمية والمجمعات الإعلانية
+    ok, why = company_ok(job)
     if not ok:
         return ok, why
 

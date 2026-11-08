@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 
-const DEFAULT_TOKEN = '9219037439:AAHOQk7AuLgqyhOWGXlUXx17vV8W8kDkswU';
-
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const token = body.token || process.env.TELEGRAM_TOKEN || DEFAULT_TOKEN;
+    let token = body.token || process.env.TELEGRAM_TOKEN;
+    if (!token || token.includes('•')) {
+      token = process.env.TELEGRAM_TOKEN;
+    }
     const chatId = body.chat_id || process.env.TELEGRAM_CHAT_ID;
 
     if (!chatId) {

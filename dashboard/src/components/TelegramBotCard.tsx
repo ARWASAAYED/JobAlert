@@ -152,8 +152,9 @@ export function TelegramBotCard({ token, chatId, setChatId }: TelegramBotCardPro
               <span>{copied ? 'Copied' : 'Copy'}</span>
             </button>
           </div>
-          <div className="font-mono text-xs text-zinc-400 bg-[#0b0c13] px-3 py-2 rounded-lg border border-[#1b1c2b] truncate">
-            {token ? `${token.slice(0, 16)}••••••••••••••••••••••••` : 'No token provided'}
+          <div className="font-mono text-xs text-zinc-400 bg-[#0b0c13] px-3 py-2 rounded-lg border border-[#1b1c2b] truncate flex items-center justify-between">
+            <span>••••••••••••••••••••••••••••••••••••</span>
+            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-sans">Secured in .env</span>
           </div>
           <p className="text-[10px] text-zinc-500 mt-2">
             Configured safely for Vercel production deployment.

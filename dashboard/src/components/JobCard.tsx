@@ -12,6 +12,9 @@ import {
   Globe,
   Home,
   RefreshCw,
+  DollarSign,
+  GraduationCap,
+  UserCheck,
 } from 'lucide-react';
 import { Job } from '@/types';
 import { sourceBadgeColor, workTypeBadge } from '@/lib/utils';
@@ -83,6 +86,24 @@ export function JobCard({ job, onOpenModal }: JobCardProps) {
             <div className="flex items-center gap-1.5">
               <Globe className="h-3.5 w-3.5 text-zinc-500 shrink-0" />
               <span className="font-medium text-zinc-300">{job.country}</span>
+            </div>
+          )}
+          {job.salary && (
+            <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
+              <DollarSign className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span className="truncate">{job.salary}</span>
+            </div>
+          )}
+          {job.career_level && (
+            <div className="flex items-center gap-1.5 text-sky-400 font-medium">
+              <GraduationCap className="h-3.5 w-3.5 text-sky-500 shrink-0" />
+              <span className="truncate">{job.career_level}</span>
+            </div>
+          )}
+          {job.recruiter && (
+            <div className="flex items-center gap-1.5 text-amber-400/90 font-medium">
+              <UserCheck className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <span className="truncate">Recruiter: {job.recruiter}</span>
             </div>
           )}
         </div>

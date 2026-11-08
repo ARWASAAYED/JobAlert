@@ -16,6 +16,8 @@ import {
   Home,
   RefreshCw,
   Building,
+  DollarSign,
+  GraduationCap,
 } from 'lucide-react';
 import { Job } from '@/types';
 import { workTypeBadge } from '@/lib/utils';
@@ -106,6 +108,18 @@ export function JobModal({ job, onClose }: JobModalProps) {
                   {job.country}
                 </span>
               )}
+              {job.salary && (
+                <span className="flex items-center gap-1 text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  <DollarSign className="h-3 w-3 text-emerald-400" />
+                  {job.salary}
+                </span>
+              )}
+              {job.career_level && (
+                <span className="flex items-center gap-1 text-sky-400 font-semibold bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-full">
+                  <GraduationCap className="h-3 w-3 text-sky-400" />
+                  {job.career_level}
+                </span>
+              )}
               <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${wt.color}`}>
                 {wt.emoji} {wt.label}
               </span>
@@ -122,6 +136,32 @@ export function JobModal({ job, onClose }: JobModalProps) {
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 text-sm">
+          {/* Recruiter / Hiring Lead Banner */}
+          {job.recruiter && (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <UserCheck className="h-4 w-4 text-amber-400 shrink-0" />
+                <div>
+                  <span className="text-[11px] uppercase tracking-wider text-amber-300/80 font-bold block">
+                    Hiring Lead / Recruiter
+                  </span>
+                  <span className="text-xs font-semibold text-white">{job.recruiter}</span>
+                </div>
+              </div>
+              <a
+                href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(
+                  job.recruiter + ' ' + (job.company || '')
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/20 hover:bg-amber-500/30 px-2.5 py-1 text-xs font-semibold text-amber-200 transition-colors shrink-0"
+              >
+                <span>Find Profile</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          )}
+
           {/* Keywords Match Card */}
           <div className="rounded-2xl border border-[#232742] bg-[#141628] p-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300 mb-2.5 flex items-center gap-2">

@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 
-const DEFAULT_TOKEN = '9219037439:AAHOQk7AuLgqyhOWGXlUXx17vV8W8kDkswU';
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const token = searchParams.get('token') || process.env.TELEGRAM_TOKEN || DEFAULT_TOKEN;
+  const token = searchParams.get('token') || process.env.TELEGRAM_TOKEN;
+  if (!token || token.includes('•')) {
+    return NextResponse.json({
+      ok: false,
+      hint: 'Bot token is protected in server environment (.env).',
+    });
+  }
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates`, {

@@ -90,5 +90,15 @@ def fetch_description(job):
         ap = soup.select_one(".num-applicants__caption, .num-applicants__figure")
         if ap:
             job.applicants = ap.get_text(" ", strip=True)
+            
+        # استخراج بيانات مسؤول التوظيف (Recruiter / Hiring Team)
+        hirer = soup.select_one(".hirer-card__hirer-information, .jobs-poster, .message-the-recruiter")
+        if hirer:
+            recruiter_name = hirer.select_one(".jobs-poster__name, h3, strong")
+            recruiter_title = hirer.select_one(".jobs-poster__headline, .hirer-card__headline, p")
+            if recruiter_name:
+                name_str = recruiter_name.get_text(" ", strip=True)
+                title_str = recruiter_title.get_text(" ", strip=True) if recruiter_title else ""
+                job.recruiter = f"{name_str} ({title_str})" if title_str else name_str
     except Exception:
         pass

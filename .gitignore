@@ -6,3 +6,6 @@ seen.db
 .vercel/
 reports/
 *.csv
+node_modules/
+.next/
+*.tsbuildinfo

@@ -65,15 +65,23 @@ def send_job(job):
     # Direct link in message body
     links_block = f'<a href="{e(url)}">View Job</a>'
 
-    # Build the message with Country, Work Type (On-site / Hybrid / Remote), Company, and Date
+    # Build the message with Country, Work Type (On-site / Hybrid / Remote), Company, Date, and Salary
+    level = getattr(job, "career_level", "")
+    salary = getattr(job, "salary", "")
+    recruiter = getattr(job, "recruiter", "")
+
     lines = [
         f"{flag} {score_badge}🆕 <b>{title}</b>",
         f"🏢 {comp}",
         f"📍 {loc}",
-        f"🌍 {e(country)}  •  {wt_badge}",
+        f"🌍 {e(country)}  •  {wt_badge}" + (f"  •  {e(level)}" if level else ""),
         f"🕐 Posted {posted}",
-        links_block,
     ]
+    if salary:
+        lines.append(f"💰 <b>Salary:</b> {e(salary)}")
+    if recruiter:
+        lines.append(f"👤 <b>Contact:</b> {e(recruiter)}")
+    lines.append(links_block)
 
     # Clean inline buttons:
     # 1. Direct Apply Job

@@ -24,20 +24,20 @@ export function VercelEnvCard({ token, chatId, cronSecret }: VercelEnvCardProps)
   const envVars = [
     {
       key: 'TELEGRAM_TOKEN',
-      value: token || '9219037439:AAHOQk7AuLgqyhOWGXlUXx17vV8W8kDkswU',
-      desc: 'Bot HTTP API token for @MyFuckingJobAlertbot',
+      value: token && !token.includes('•') ? token : '••••••••••••••••••••••••••••••••••••••••••••',
+      desc: 'Bot HTTP API token for @MyFuckingJobAlertbot (Protected in .env)',
       required: true,
     },
     {
       key: 'TELEGRAM_CHAT_ID',
-      value: chatId || 'YOUR_TELEGRAM_CHAT_ID',
-      desc: 'Your personal Telegram account or channel Chat ID',
+      value: chatId && !chatId.includes('•') ? chatId : '••••••••••',
+      desc: 'Your personal Telegram account or channel Chat ID (Protected in .env)',
       required: true,
     },
     {
       key: 'CRON_SECRET',
-      value: cronSecret || 'jobalert_secret_2026',
-      desc: 'Protects /api/poll endpoint from unauthorized triggers',
+      value: cronSecret && !cronSecret.includes('•') ? cronSecret : '••••••••••••••••••••',
+      desc: 'Protects /api/poll endpoint from unauthorized triggers (Protected in .env)',
       required: true,
     },
     {

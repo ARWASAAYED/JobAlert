@@ -13,6 +13,9 @@ export interface Job {
   remote: boolean;
   work_type: WorkType;
   country: string;
+  salary?: string;
+  recruiter?: string;
+  career_level?: string;
   applicants?: string;
   matched_at?: string;
   match_score?: number;

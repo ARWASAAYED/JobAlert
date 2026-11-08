@@ -75,6 +75,9 @@ def _export_to_dashboard(jobs):
             "remote": getattr(j, "remote_search", False),
             "work_type": getattr(j, "work_type", "On-site"),
             "country": getattr(j, "country", ""),
+            "salary": getattr(j, "salary", ""),
+            "recruiter": getattr(j, "recruiter", ""),
+            "career_level": getattr(j, "career_level", ""),
             "match_score": getattr(j, "score", 0),
             "verdict": getattr(j, "verdict", ""),
             "matched_keywords": getattr(j, "strengths", []),
@@ -142,6 +145,8 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
                 job.score, job.verdict, job.strengths, job.gaps, job.cv_suggestions = score, verdict, strengths, gaps, cv_suggs
                 job.work_type = filters.work_type(job)
                 job.country = filters.extract_country(job)
+                job.salary = getattr(job, "salary", "") or filters.extract_salary(job)
+                job.career_level = getattr(job, "career_level", "") or filters.extract_career_level(job)
                 if score < getattr(config, "MIN_FIT_SCORE", 35):
                     ok, why = False, f"low fit score ({score}%)"
             if not ok:

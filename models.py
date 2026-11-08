@@ -21,6 +21,9 @@ class Job:
     cv_suggestions: List[str] = field(default_factory=list)
     work_type: str = ""              # Remote, Hybrid, On-site (set by filters.work_type)
     country: str = ""                # Egypt, Worldwide, USA, etc. (extracted from location)
+    salary: str = ""                 # e.g. "$1,500 - $2,500 / mo" or "15,000 - 25,000 EGP"
+    recruiter: str = ""              # Recruiter / Hiring manager name & title
+    career_level: str = ""           # Entry Level, Junior, etc.
 
     @property
     def key(self):

@@ -170,6 +170,8 @@ class Store:
                 "company": job.company, "location": job.location, "url": job.url,
                 "score": getattr(job, "score", 0), "work_type": getattr(job, "work_type", ""),
                 "country": getattr(job, "country", ""), "posted_at": getattr(job, "posted_at", ""),
+                "salary": getattr(job, "salary", ""), "recruiter": getattr(job, "recruiter", ""),
+                "career_level": getattr(job, "career_level", ""),
                 "sent_at": int(time.time())
             }
             pipe = self.r.pipeline()
