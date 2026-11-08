@@ -5,24 +5,36 @@ import os
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "9219037439:AAHOQk7AuLgqyhOWGXlUXx17vV8W8kDkswU")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "1958806187")
 
-# ---- التوقيت ----
-POLL_SECONDS = 120          # الفحص كل كام ثانية (متنزلش عن 90 عشان لينكدان ميعملش بلوك)
-MAX_AGE_MINUTES = int(os.getenv("MAX_AGE_MINUTES", "1440"))  # فحص وظائف آخر 24 ساعة مع منع التكرار
+# ---- Redis Database (دائم - لمنع تكرار الرسائل نهائياً) ----
+REDIS_URL = os.getenv("REDIS_URL", "redis://default:jyxFrH1Es7SIadD7SAKP3tTOwh4hpgmW@neocozy-star-steadfast-83525.db.redis.io:11692")
 
-# ---- الفلاتر ----
-# لازم العنوان يحتوي واحدة من دول
+# ---- التوقيت وتحديد حداثة الوظيفة ----
+POLL_SECONDS = 120                                            # الفحص كل كام ثانية
+MAX_JOB_AGE_HOURS = int(os.getenv("MAX_JOB_AGE_HOURS", "24")) # أقصى عمر للوظيفة: 24 ساعة فقط (وظائف اليوم والحديثة)
+MAX_AGE_MINUTES = int(os.getenv("MAX_AGE_MINUTES", "1440"))
+
+# ---- الفلاتر الدقيقة لمجال Frontend / React / Web ----
+# لازم العنوان يحتوي واحدة من دول حصراً
 TITLE_MUST_ANY = [
     "react", "front-end", "front end", "frontend", "next.js", "nextjs",
     "shopify", "web developer", "ui developer", "ui/ux developer",
-    "javascript developer", "software engineer"
+    "javascript developer", "frontend engineer", "front-end engineer",
+    "react engineer", "web engineer"
 ]
+
 # الكلمات المستهدفة في الوصف (لو فاضية مبيفلتش بالوصف)
 DESCRIPTION_MUST = []
-# أي عنوان فيه دول يتشال (إلا لو مذكور junior صراحة)
+
+# أي عنوان فيه دول يتشال فوراً (استبعاد المناصب العليا ومجالات الموبايل والباك إند والإنفرا)
 TITLE_EXCLUDE = [
     "senior", "sr.", "sr ", "lead", "principal", "staff", "manager", "head of",
-    "architect", "director", "expert", "unpaid"
+    "architect", "director", "expert", "unpaid",
+    "android", "ios", "mobile", "flutter", "react native",
+    "infrastructure", "infra", "devops", "sre", "reliability",
+    "backend", "back-end", "back end", "firmware", "embedded",
+    "data engineer", "data scientist", "machine learning", "qa engineer", "sdet"
 ]
+
 # لو العنوان فيه دول ومفيهوش react أو frontend يتشال
 OTHER_FRAMEWORKS = ["angular", "vue", "svelte", "php", "laravel", ".net", "java ", "python"]
 
@@ -59,14 +71,13 @@ INDEED_SEARCHES = [
     {"term": "react developer", "location": "", "country": "usa", "remote": True},
 ]
 
-FREEHIRE_QUERIES = ["React", "Frontend", "Full Stack", "Next.js", "Web Developer"]
-JOBICY_TAGS = ["react", "frontend", "full-stack", "javascript"]
+FREEHIRE_QUERIES = ["React", "Frontend", "Next.js", "Web Developer"]
+JOBICY_TAGS = ["react", "frontend", "javascript"]
 MIN_FIT_SCORE = int(os.getenv("MIN_FIT_SCORE", "35"))
 
 DB_PATH = os.getenv("DB_PATH", "/tmp/seen.db" if os.getenv("VERCEL") else "seen.db")
 
 # ---- Gmail (اختياري) ----
-# لازم 2-Step Verification + App Password (شوفي README)
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_APP_PASSWORD = os.getenv("SMTP_APP_PASSWORD", "")
 EMAIL_TO = os.getenv("EMAIL_TO", "") or SMTP_USER
@@ -75,4 +86,3 @@ EMAIL_TO = os.getenv("EMAIL_TO", "") or SMTP_USER
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-5-5")
 MASTER_CV_PATH = os.getenv("MASTER_CV_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "master_cv.json"))
-OUT_DIR = os.getenv("OUT_DIR", "/tmp/cv_out" if os.getenv("VERCEL") else "cv_out")

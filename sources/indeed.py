@@ -73,3 +73,4 @@ def fetch():
             log.warning("Indeed search '%s' (%s) failed: %s", s.get("term"), s.get("country"), e)
 
     return out
+

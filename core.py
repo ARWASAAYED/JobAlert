@@ -95,19 +95,24 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
     pool = pool or ThreadPoolExecutor(max_workers=3)
     futs = []
 
-    # Fetch all enabled job sources concurrently for lightning fast speed
+    # Fetch all enabled job sources concurrently with strict timeout protection
     sources = get_sources()
     source_results = []
     with ThreadPoolExecutor(max_workers=len(sources) or 1) as src_exec:
         fut_map = {src_exec.submit(fn): name for name, fn in sources}
-        for fut in fut_map:
+        done, not_done = wait(fut_map.keys(), timeout=25)
+        for fut in done:
             name = fut_map[fut]
             try:
-                jobs = fut.result(timeout=30)
+                jobs = fut.result()
                 source_results.append((name, jobs))
             except Exception as e:
                 stats["errors"][name] = str(e)[:200]
                 log.warning("%s failed: %s", name, e)
+        for fut in not_done:
+            name = fut_map[fut]
+            stats["errors"][name] = "timeout (>25s)"
+            log.warning("%s timed out (>25s)", name)
 
     for name, jobs in source_results:
         stats["candidates"] += len(jobs)
@@ -133,18 +138,21 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
                 job.country = filters.extract_country(job)
                 if score < getattr(config, "MIN_FIT_SCORE", 35):
                     ok, why = False, f"low fit score ({score}%)"
-            store.add(job.key)
             if not ok:
+                store.add(job.key)
                 stats["skipped"] += 1; log.info("skip %s | %s (%s)", job.title, job.company, why); continue
             try:
-                if not dry and notifier.enabled():
-                    notifier.send_job(job)                 # التنبيه الفوري
+                # 1. حفظ فوري ودائم في Redis لمنع أي تكرار نهائياً
+                if not dry:
+                    store.add(job.key, job=job)
+                    if notifier.enabled():
+                        notifier.send_job(job)
                 stats["matched"].append(f"{job.title} | {job.company}")
                 matched_job_objects.append(job)
                 tracker.track_job(job.key, job.title, job.company, job.url, status="identified", fit_score=job.score)
                 futs.append(pool.submit(enrich, job, dry))
             except Exception as e:
-                log.error("alert failed: %s", e); store.remove(job.key)
+                log.error("alert processing failed: %s", e)
 
     # 1. Generate local daily reports (HTML & Markdown)
     if matched_job_objects:

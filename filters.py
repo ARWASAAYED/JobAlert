@@ -6,29 +6,43 @@ def _has(text, words):
     t = text.lower()
     return any(w in t for w in words)
 
-def is_fresh(job, max_hours=48):
+def is_fresh(job, max_hours=None):
     """
     يتأكد أن الوظيفة حديثة وليست من أسبوعين أو شهور سابقة.
-    يرفض الوظائف التي كُتب عليها (2 weeks ago, 1 month ago, إلخ).
+    يرفض الوظائف التي كُتب عليها (2 weeks ago, 1 month ago, 2 days ago, إلخ).
     """
+    if max_hours is None:
+        max_hours = getattr(config, "MAX_JOB_AGE_HOURS", 24)
+
     raw = (job.posted_text or "").lower().strip()
     
-    # استبعاد صريح للوظائف القديمة جداً
-    stale_indicators = ["week", "month", "year", "أسبوع", "شهر", "سنة", "14d", "15d", "20d", "30d"]
+    # 1. استبعاد صريح للأسابيع والشهور والسنوات
+    stale_indicators = ["week", "month", "year", "أسبوع", "شهر", "سنة"]
     if any(si in raw for si in stale_indicators):
-        # إلا لو مكتوب "1 week" ولكن منشور خلال آخر 48 ساعة فعلياً
         return False, f"too old ({raw})"
 
-    # فحص تاريخ النشر الفعلي إذا كان متوفراً
+    # 2. فحص الأيام بالأرقام (مثال: "2 days ago", "3 days ago", "4d", "5 days", "10 days")
+    days_match = re.search(r"(\d+)\s*(?:days?|d|يوم|أيام)", raw)
+    if days_match:
+        days = int(days_match.group(1))
+        if days * 24 > max_hours:
+            return False, f"older than {max_hours}h ({days}d ago)"
+
+    # 3. فحص تاريخ النشر الفعلي بدقة (ISO, YYYY-MM-DD, HH:MM)
     if job.posted_at:
-        try:
-            # الصيغة: YYYY-MM-DD HH:MM
-            job_dt = dt.datetime.strptime(job.posted_at[:16], "%Y-%m-%d %H:%M")
+        clean_date = str(job.posted_at).replace("T", " ").replace("Z", "").split("+")[0].split(".")[0].strip()
+        job_dt = None
+        for fmt in ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]:
+            try:
+                target = clean_date[:19] if len(clean_date) >= 19 else (clean_date[:16] if len(clean_date) >= 16 else clean_date[:10])
+                job_dt = dt.datetime.strptime(target, fmt)
+                break
+            except Exception:
+                continue
+        if job_dt:
             diff = (dt.datetime.now() - job_dt).total_seconds() / 3600
             if diff > max_hours:
                 return False, f"older than {max_hours}h ({int(diff)}h ago)"
-        except Exception:
-            pass
 
     return True, ""
 
@@ -63,8 +77,8 @@ def min_years_required(text):
     return min(found) if found else None
 
 def full_ok(job):
-    # 1. فحص حداثة الوظيفة (طرد الوظائف القديمة من أسبوعين وشهور)
-    fresh, why_stale = is_fresh(job, max_hours=48)
+    # 1. فحص حداثة الوظيفة (طرد الوظائف القديمة التي مر عليها أكثر من 24 ساعة)
+    fresh, why_stale = is_fresh(job)
     if not fresh:
         return False, why_stale
 

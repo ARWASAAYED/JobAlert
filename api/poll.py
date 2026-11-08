@@ -31,7 +31,8 @@ class handler(BaseHTTPRequestHandler):
                 return self._send(503, {"error": "Telegram/Gmail env vars not set"})
             s = st.Store()
             stats = core.run_round(s, dry=dry, wait_timeout=45)
-            stats["store"] = "redis" if s.redis else "tmp-sqlite (add Upstash Redis!)"
+            stats["store"] = "redis" if s.redis else f"tmp-sqlite (err: {getattr(s, 'error_msg', 'none')})"
+            stats["seen_total"] = len(s.cached_seen) if hasattr(s, "cached_seen") else 0
             return self._send(200, stats)
         except Exception as e:
             return self._send(500, {"error": str(e)[:300]})

@@ -9,7 +9,7 @@ log = logging.getLogger("jobalert.jobicy")
 UA = "jobalert-personal/1.0"
 
 def fetch():
-    tags = getattr(config, "JOBICY_TAGS", ["react", "frontend", "full-stack"])
+    tags = getattr(config, "JOBICY_TAGS", ["react", "frontend"])
     out = []
     seen_ids = set()
 
@@ -19,7 +19,7 @@ def fetch():
                 "https://jobicy.com/api/v2/remote-jobs",
                 params={"count": 15, "tag": tag},
                 headers={"User-Agent": UA},
-                timeout=15,
+                timeout=6,
             )
             if not r.ok:
                 log.warning("Jobicy tag '%s' returned %s", tag, r.status_code)
