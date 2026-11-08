@@ -1,6 +1,4 @@
-"""Compatibility entrypoint pointing to local_run.py"""
-import local_run
+from local_run import main
 
 if __name__ == "__main__":
-    local_run.main()
-
+    main()

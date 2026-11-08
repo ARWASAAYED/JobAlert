@@ -8,7 +8,7 @@ import os
 import csv
 from datetime import datetime, date
 
-DEFAULT_TRACKER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tracker.csv")
+DEFAULT_TRACKER_PATH = "/tmp/tracker.csv" if os.getenv("VERCEL") else os.path.join(os.path.dirname(os.path.abspath(__file__)), "tracker.csv")
 
 FIELDS = ["job_key", "title", "company", "url", "status", "applied_date", "deadline", "fit_score", "notes"]
 

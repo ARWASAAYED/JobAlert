@@ -14,7 +14,7 @@ def get_sources():
     if getattr(config, "ENABLE_JOBICY", True):
         from sources import jobicy
         s.append(("jobicy", jobicy.fetch))
-    if getattr(config, "ENABLE_INDEED", True):
+    if getattr(config, "ENABLE_INDEED", False):
         from sources import indeed
         s.append(("indeed", indeed.fetch))
     if config.ENABLE_LINKEDIN: s.append(("linkedin", linkedin.fetch))
@@ -69,9 +69,8 @@ def _export_to_dashboard(jobs):
             "title": j.title,
             "company": j.company,
             "location": j.location,
+            "posted_at": j.posted_at or "Recent",
             "url": j.url,
-            "posted_text": j.posted_text or "Recently",
-            "posted_at": j.posted_at or "",
             "description": j.description or "",
             "remote": getattr(j, "remote_search", False),
             "work_type": getattr(j, "work_type", "On-site"),
@@ -89,13 +88,13 @@ def _export_to_dashboard(jobs):
 
 
 def run_round(store, dry=False, pool=None, wait_timeout=None):
-    stats = {"candidates": 0, "matched": [], "skipped": 0, "errors": {}}
+    """جولة واحدة. الحجز (claim) ذرّي في Redis قبل التنبيه لمنع أي تكرار."""
+    stats = {"candidates": 0, "fresh": 0, "matched": [], "skipped": 0, "errors": {}}
     matched_job_objects = []
     own = pool is None
     pool = pool or ThreadPoolExecutor(max_workers=3)
     futs = []
 
-    # Fetch all enabled job sources concurrently with strict timeout protection
     sources = get_sources()
     source_results = []
     with ThreadPoolExecutor(max_workers=len(sources) or 1) as src_exec:
@@ -114,11 +113,23 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
             stats["errors"][name] = "timeout (>25s)"
             log.warning("%s timed out (>25s)", name)
 
+    batch_seen = set()
     for name, jobs in source_results:
         stats["candidates"] += len(jobs)
         for job in jobs:
+            if job.key in batch_seen:
+                continue
+            batch_seen.add(job.key)
+
+            # 1) فحص الحداثة فوراً: الوظيفة القديمة تستبعد بدون استهلاك Redis أو جلب التفاصيل
+            fresh, why_stale = filters.is_fresh(job)
+            if not fresh:
+                continue
+            stats["fresh"] += 1
+
             if store.has(job.key):
                 continue
+
             ok, why = filters.title_ok(job)
             if ok and not filters.egypt_or_remote(job):
                 ok, why = False, "location"
@@ -128,41 +139,50 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
             if ok: ok, why = filters.full_ok(job)
             if ok:
                 score, verdict, strengths, gaps, cv_suggs = filters.calculate_fit(job)
-                job.score = score
-                job.verdict = verdict
-                job.strengths = strengths
-                job.gaps = gaps
-                job.cv_suggestions = cv_suggs
-                # Populate work_type and country
+                job.score, job.verdict, job.strengths, job.gaps, job.cv_suggestions = score, verdict, strengths, gaps, cv_suggs
                 job.work_type = filters.work_type(job)
                 job.country = filters.extract_country(job)
                 if score < getattr(config, "MIN_FIT_SCORE", 35):
                     ok, why = False, f"low fit score ({score}%)"
             if not ok:
-                store.add(job.key)
-                stats["skipped"] += 1; log.info("skip %s | %s (%s)", job.title, job.company, why); continue
-            try:
-                # 1. حفظ فوري ودائم في Redis لمنع أي تكرار نهائياً
                 if not dry:
-                    store.add(job.key, job=job)
-                    if notifier.enabled():
-                        notifier.send_job(job)
-                stats["matched"].append(f"{job.title} | {job.company}")
-                matched_job_objects.append(job)
-                tracker.track_job(job.key, job.title, job.company, job.url, status="identified", fit_score=job.score)
-                futs.append(pool.submit(enrich, job, dry))
-            except Exception as e:
-                log.error("alert processing failed: %s", e)
+                    store.add(job.key)
+                stats["skipped"] += 1; log.info("skip %s | %s (%s)", job.title, job.company, why); continue
 
-    # 1. Generate local daily reports (HTML & Markdown)
+            label = f"{job.title} | {job.company} | {filters.age_label(job)}"
+            if dry:
+                stats["matched"].append(label)
+                continue
+
+            # 2) حجز ذرّي (Atomic claim) في Redis قبل التنبيه
+            if not store.claim(job.key):
+                continue
+
+            if notifier.enabled():
+                try:
+                    notifier.send_job(job)
+                except Exception as e:
+                    log.error("telegram send failed: %s", e)
+                    stats["errors"]["telegram"] = str(e)[:200]
+                    store.remove(job.key)          # الوحيد المسموح له بإلغاء الحجز: فشل الإرسال
+                    continue
+
+            stats["matched"].append(label)
+            matched_job_objects.append(job)
+
+            # 3) التسجيل بالداشبورد والتتبع
+            try: store.record(job)
+            except Exception: pass
+            try: tracker.track_job(job.key, job.title, job.company, job.url, status="identified", fit_score=job.score)
+            except Exception as e: log.warning("tracker failed: %s", e)
+            futs.append(pool.submit(enrich, job, dry))
+
     if matched_job_objects:
         try:
             rep_res = reporter.generate_reports(matched_job_objects, stats)
             stats["reports"] = rep_res
         except Exception as e:
             log.warning("Report generation failed: %s", e)
-
-        # 2. Export live matches for Next.js Dashboard
         try:
             _export_to_dashboard(matched_job_objects)
         except Exception as e:
@@ -180,7 +200,6 @@ def test_alert():
     job = Job(source="linkedin", id="4485506218", title="Shopify developer (TEST)", company="Republic- Job Company", location="Cairo, Egypt",
               url="https://www.linkedin.com/jobs/view/4485506218/", posted_text="Just now", posted_at=now_str,
               description="Shopify, Liquid, React, JavaScript, CSS. 0-2 years of experience. Cairo, Egypt.")
-    # Populate work_type and country for test too
     job.work_type = filters.work_type(job)
     job.country = filters.extract_country(job)
     job.score, job.verdict, job.strengths, job.gaps, job.cv_suggestions = filters.calculate_fit(job)

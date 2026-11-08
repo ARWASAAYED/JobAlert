@@ -1,4 +1,5 @@
-import re, requests
+import re, requests, datetime as dt
+from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
 import config
 from models import Job
@@ -9,96 +10,73 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
     "Accept-Language": "en-US,en;q=0.9",
 }
+# لو كوكي الجلسة li_at متوفر، نضيفه فوراً للهيدر
+if getattr(config, "LINKEDIN_LI_AT", None):
+    HEADERS["Cookie"] = f"li_at={config.LINKEDIN_LI_AT};"
 
 class RateLimited(Exception): pass
 
-def parse_cards(html_text, remote_search=False):
+def parse_cards(html_text, remote_search=False, now=None):
+    import filters
+    now = now or dt.datetime.now(dt.timezone.utc)
     soup = BeautifulSoup(html_text, "html.parser")
     jobs = []
-    import datetime as _dt
-    now = _dt.datetime.now()
-
     for card in soup.select("div.base-card, li div.job-search-card"):
         urn = card.get("data-entity-urn", "")
         m = re.search(r"(\d+)$", urn)
         a = card.select_one("a.base-card__full-link, a[href*='/jobs/view/']")
         title = card.select_one(".base-search-card__title")
-        
         href = a["href"] if a else ""
-        job_id = None
-        if m:
-            job_id = m.group(1)
-        elif card.get("data-job-id"):
-            job_id = card.get("data-job-id")
-        elif href:
-            m_href = re.search(r"/jobs/view/(?:[^/]+-)?(\d+)", href) or re.search(r"(\d{8,})", href)
-            if m_href:
-                job_id = m_href.group(1)
-
+        job_id = m.group(1) if m else card.get("data-job-id")
+        if not job_id and href:
+            mh = re.search(r"/jobs/view/(?:[^/]+-)?(\d+)", href) or re.search(r"(\d{8,})", href)
+            job_id = mh.group(1) if mh else None
         if not (job_id and title):
             continue
-
         comp = card.select_one(".base-search-card__subtitle")
         loc = card.select_one(".job-search-card__location")
         t = card.select_one("time")
-
-        # Parse posted timestamp
         posted_text = t.get_text(" ", strip=True) if t else ""
-        posted_at = ""
-        dt_val = t.get("datetime") if t else ""
-        if dt_val:
-            if "T" in dt_val:
-                posted_at = dt_val.replace("T", " ").split(".")[0][:16]
-            else:
-                posted_at = f"{dt_val} {now.strftime('%H:%M')}"
-        else:
-            posted_at = now.strftime("%Y-%m-%d %H:%M")
-
-        # Guaranteed canonical direct view URL (no tracking redirects)
-        clean_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
-
-        jobs.append(Job(
-            source="linkedin",
-            id=job_id,
+        job = Job(
+            source="linkedin", id=job_id,
             title=title.get_text(" ", strip=True),
             company=comp.get_text(" ", strip=True) if comp else "",
             location=loc.get_text(" ", strip=True) if loc else "",
-            url=clean_url,
-            posted_text=posted_text,
-            posted_at=posted_at,
-            remote_search=remote_search,
-        ))
+            url=f"https://www.linkedin.com/jobs/view/{job_id}/",
+            posted_text=posted_text, remote_search=remote_search,
+        )
+        # استخراج الوقت الحقيقي من النص ("5 minutes ago")
+        age = filters.age_minutes(job, now)
+        if age is not None:
+            job.posted_at = (now - dt.timedelta(minutes=age)).strftime("%Y-%m-%d %H:%M")
+        jobs.append(job)
     return jobs
 
-def fetch():
-    import time
-    out = []
-    seen_ids = set()
-    
-    for kw in config.LINKEDIN_KEYWORDS:
-        for loc, wt in config.LINKEDIN_SEARCHES:
-            params = {"keywords": kw, "location": loc, "sortBy": "DD", "start": 0, "f_TPR": "r172800"}
-            if wt:
-                params["f_WT"] = wt
+def _search(args):
+    kw, loc, wt = args
+    max_seconds = max(1800, config.MAX_AGE_MINUTES * 60)
+    params = {
+        "keywords": kw, "location": loc, "sortBy": "DD", "start": 0,
+        "f_TPR": f"r{max_seconds}"
+    }
+    if wt:
+        params["f_WT"] = wt
+    try:
+        r = requests.get(SEARCH, params=params, headers=HEADERS, timeout=15)
+        if r.status_code != 200:
+            return []
+        return parse_cards(r.text, remote_search=(wt == "2"))
+    except Exception:
+        return []
 
-            try:
-                r = requests.get(SEARCH, params=params, headers=HEADERS, timeout=15)
-                if r.status_code == 429:
-                    time.sleep(3)
-                    continue
-                if r.status_code != 200:
-                    continue
-                
-                cards = parse_cards(r.text, remote_search=(wt == "2"))
-                for job in cards:
-                    if job.id not in seen_ids:
-                        seen_ids.add(job.id)
-                        out.append(job)
-            except Exception:
-                pass
-            
-            time.sleep(1.2)  # Avoid rate limiting
-            
+def fetch():
+    combos = [(kw, loc, wt) for kw in config.LINKEDIN_KEYWORDS for loc, wt in config.LINKEDIN_SEARCHES]
+    out, seen = [], set()
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        for cards in ex.map(_search, combos):
+            for job in cards:
+                if job.id not in seen:
+                    seen.add(job.id); out.append(job)
     return out
 
 def fetch_description(job):

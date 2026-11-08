@@ -6,45 +6,71 @@ def _has(text, words):
     t = text.lower()
     return any(w in t for w in words)
 
-def is_fresh(job, max_hours=None):
-    """
-    يتأكد أن الوظيفة حديثة وليست من أسبوعين أو شهور سابقة.
-    يرفض الوظائف التي كُتب عليها (2 weeks ago, 1 month ago, 2 days ago, إلخ).
-    """
-    if max_hours is None:
-        max_hours = getattr(config, "MAX_JOB_AGE_HOURS", 24)
+_UNIT_MIN = {
+    "second": 1/60, "sec": 1/60, "minute": 1, "min": 1, "hour": 60, "hr": 60,
+    "day": 1440, "week": 10080, "month": 43200, "year": 525600
+}
+_REL = re.compile(r"(\d+|an?|one)\s*(second|sec|minute|min|hour|hr|day|week|month|year)s?\b", re.I)
 
-    raw = (job.posted_text or "").lower().strip()
-    
-    # 1. استبعاد صريح للأسابيع والشهور والسنوات
-    stale_indicators = ["week", "month", "year", "أسبوع", "شهر", "سنة"]
-    if any(si in raw for si in stale_indicators):
-        return False, f"too old ({raw})"
+def _parse_iso(s):
+    s = (s or "").strip()
+    if not s or re.fullmatch(r"\d{4}-\d{2}-\d{2}", s):     # تاريخ من غير ساعة = مش دقيق
+        return None
+    try:
+        clean = s.replace("Z", "+00:00")
+        d = dt.datetime.fromisoformat(clean)
+    except ValueError:
+        return None
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=dt.timezone.utc)
+    return d
 
-    # 2. فحص الأيام بالأرقام (مثال: "2 days ago", "3 days ago", "4d", "5 days", "10 days")
-    days_match = re.search(r"(\d+)\s*(?:days?|d|يوم|أيام)", raw)
-    if days_match:
-        days = int(days_match.group(1))
-        if days * 24 > max_hours:
-            return False, f"older than {max_hours}h ({days}d ago)"
+def age_minutes(job, now=None):
+    """عمر الوظيفة بالدقائق بدقة، أو None لو غير معروف."""
+    now = now or dt.datetime.now(dt.timezone.utc)
+    d = _parse_iso(job.posted_at)
+    if d:
+        return max(0.0, (now - d).total_seconds() / 60)
+    raw = (job.posted_text or "").lower()
+    if re.search(r"just now|moments? ago|few seconds|الآن", raw):
+        return 0.0
+    m = _REL.search(raw)
+    if m:
+        n = 1 if not m.group(1).isdigit() else int(m.group(1))
+        unit = m.group(2).lower()
+        return n * _UNIT_MIN.get(unit, 1440)
+    return None
 
-    # 3. فحص تاريخ النشر الفعلي بدقة (ISO, YYYY-MM-DD, HH:MM)
-    if job.posted_at:
-        clean_date = str(job.posted_at).replace("T", " ").replace("Z", "").split("+")[0].split(".")[0].strip()
-        job_dt = None
-        for fmt in ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"]:
+def is_fresh(job, max_minutes=None):
+    """الوظيفة لازم تكون نازلة من أقل من MAX_AGE_MINUTES أو MAX_JOB_AGE_HOURS."""
+    limit = max_minutes or config.MAX_AGE_MINUTES
+    age = age_minutes(job)
+    if age is None:
+        # فحص إضافي إذا كان التاريخ مكتوب بصيغة YYYY-MM-DD
+        if job.posted_at and len(job.posted_at) >= 10:
             try:
-                target = clean_date[:19] if len(clean_date) >= 19 else (clean_date[:16] if len(clean_date) >= 16 else clean_date[:10])
-                job_dt = dt.datetime.strptime(target, fmt)
-                break
+                job_date = dt.datetime.strptime(str(job.posted_at)[:10], "%Y-%m-%d").date()
+                diff_days = (dt.date.today() - job_date).days
+                if diff_days > (getattr(config, "MAX_JOB_AGE_HOURS", 24) / 24):
+                    return False, f"too old ({diff_days} days ago)"
+                return True, ""
             except Exception:
-                continue
-        if job_dt:
-            diff = (dt.datetime.now() - job_dt).total_seconds() / 3600
-            if diff > max_hours:
-                return False, f"older than {max_hours}h ({int(diff)}h ago)"
-
+                pass
+        return False, "unknown posting time"
+    if age > limit:
+        return False, f"too old ({int(age)} min)"
     return True, ""
+
+def age_label(job):
+    """صيغة مختصرة وأنيقة لعمر الوظيفة للرسالة والداشبورد."""
+    age = age_minutes(job)
+    if age is None:
+        return job.posted_text or "recently"
+    if age < 1:
+        return "just now"
+    if age < 90:
+        return f"{int(age)} min ago"
+    return f"{age/60:.1f} h ago"
 
 def title_ok(job):
     t = " " + job.title.lower() + " "
@@ -53,13 +79,12 @@ def title_ok(job):
     if not _has(t, config.TITLE_MUST_ANY):
         return False, "title not frontend/react/shopify/web"
         
-    # 2. استبعاد المسميات الإدارية والعليا (Senior, Lead, Principal, etc.)
-    # استثناء: إذا كان العنوان فيه junior frontend / junior react نسمح به حتى لو ذكر كلمات أخرى
+    # 2. استبعاد المسميات الإدارية والعليا (Senior, Lead, Principal, etc.) ومجالات غير مرغوبة
     is_junior_explicit = any(j in t for j in ["junior", "jr.", "jr ", "entry level", "fresh", "مبتدئ"])
     
     if _has(t, config.TITLE_EXCLUDE):
         if not is_junior_explicit:
-            return False, "excluded title word (senior/lead)"
+            return False, "excluded title word"
             
     # 3. إطارات العمل الأخرى غير المستهدفة
     if _has(t, config.OTHER_FRAMEWORKS) and not any(k in t for k in ["react", "frontend", "front end", "shopify", "next"]):
@@ -77,7 +102,7 @@ def min_years_required(text):
     return min(found) if found else None
 
 def full_ok(job):
-    # 1. فحص حداثة الوظيفة (طرد الوظائف القديمة التي مر عليها أكثر من 24 ساعة)
+    # 1. فحص حداثة الوظيفة
     fresh, why_stale = is_fresh(job)
     if not fresh:
         return False, why_stale
@@ -93,6 +118,11 @@ def full_ok(job):
     if config.DESCRIPTION_MUST and job.description is not None and not _has(text, config.DESCRIPTION_MUST):
         return False, "required description keyword not mentioned"
         
+    # 3b. لو العنوان عام (Software Engineer / Web Developer): لازم الوصف يذكر مهارة من مهاراتك
+    if not _has(job.title.lower(), config.CORE_TITLE_WORDS):
+        if job.description is None or not _has(text, config.CORE_SKILLS):
+            return False, "generic title without react/frontend skills"
+
     # 4. استبعاد القيود الجغرافية الصارمة (مثل US Only لمقيم في مصر)
     if _has(text, config.BAD_PHRASES):
         return False, "location restricted"
@@ -153,7 +183,6 @@ def extract_country(job):
     if any(w in loc for w in remote_words) or job.remote_search:
         return "🌐 Worldwide"
     
-    # If we can't detect, return the raw location trimmed
     raw = (job.location or "").strip()
     return raw[:30] if raw else "🌍 Unknown"
 
@@ -184,10 +213,14 @@ def egypt_or_remote(job):
 
     # 3. Valid remote scopes (EMEA, Worldwide, Global, or general remote without exclusive country lock)
     remote_ok = ["worldwide", "anywhere", "global", "emea", "africa", "middle east", "mena", "remote"]
-    if job.remote_search or loc.strip() == "":
+    if loc.strip() == "" or _has(loc, remote_ok):
         return True
-    return _has(loc, remote_ok)
-
+    if job.remote_search:
+        # ريموت بس مكانه دولة معينة: نقبله لو الإعلان نفسه بيقول worldwide/EMEA/Africa/Egypt
+        open_phrases = ["worldwide", "anywhere", "work from anywhere", "global", "emea", "africa",
+                        "middle east", "mena", "egypt", "any location", "any country"]
+        return any(p in combined for p in open_phrases)
+    return False
 
 def calculate_fit(job):
     """
@@ -222,74 +255,32 @@ def calculate_fit(job):
     behav_score = 85
     if "remote" in text or "hybrid" in text or "flexible" in text:
         behav_score += 10
-    if "ai" in text or "open source" in text or "opensource" in text:
-        behav_score += 10
-    behav_score = min(100, behav_score)
 
-    # 4. Career Alignment (0 - 100)
-    career_score = 75
-    if any(w in title for w in ["full stack", "fullstack", "full-stack"]):
-        career_score = 95
-    elif any(w in title for w in ["frontend", "front-end", "web developer"]):
-        career_score = 90
-    elif "react" in title:
-        career_score = 92
+    # Weighted Overall Score
+    overall = int((tech_score * 0.5) + (exp_score * 0.35) + (behav_score * 0.15))
+    overall = max(0, min(100, overall))
 
-    # Weighted Overall Score (30% Tech, 25% Exp, 15% Behav, 30% Career)
-    final_score = int((tech_score * 0.30) + (exp_score * 0.25) + (behav_score * 0.15) + (career_score * 0.30))
-    final_score = max(0, min(100, final_score))
-
-    if final_score >= 85:
+    # Verdict Band
+    if overall >= 85:
         verdict = "Strong Fit"
-    elif final_score >= 70:
+    elif overall >= 70:
         verdict = "Good Fit"
-    elif final_score >= 50:
+    elif overall >= 50:
         verdict = "Moderate Fit"
     else:
-        verdict = "Weak Fit"
+        verdict = "Low Fit"
 
-    # Strengths
-    strengths = []
-    matched_stack = [s for s in ["React", "TypeScript", "Next.js", "Node.js", "Tailwind CSS", "PostgreSQL", "MongoDB", "NestJS", "RESTful APIs"] if s.lower() in text]
-    if matched_stack:
-        strengths.append(f"Strong stack alignment on {', '.join(matched_stack[:4])}.")
-    if any(w in text for w in ["ai", "copilot", "cursor", "llm"]):
-        strengths.append("Values AI-assisted workflows which aligns directly with your tooling.")
-    if any(w in text for w in ["open source", "opensource"]):
-        strengths.append("Values open source contributions, matching your DEY HireReady NTI experience.")
-    if any(w in title for w in ["junior", "entry", "fresh"]):
-        strengths.append("Ideal seniority fit explicitly targeting junior / entry-level developers.")
+    # Strengths / Gaps
+    strengths = [s.title() for s in primary_skills + secondary_skills if s in text][:5]
     if not strengths:
-        strengths.append("Matches fundamental full-stack web development principles.")
+        strengths = ["Frontend Foundations", "Responsive Design"]
 
-    # Gaps
-    gaps = []
-    for g in ["Docker", "Kubernetes", "GraphQL", "AWS", "CI/CD", "Redis", "Microservices"]:
-        if g.lower() in text:
-            gaps.append(f"Mentions {g}.")
-            if len(gaps) >= 2:
-                break
-    if not gaps:
-        gaps.append("Standard competitive applicant pool.")
+    missing_candidates = ["TypeScript", "Next.js", "Tailwind CSS", "Redux Toolkit", "GraphQL", "Docker"]
+    gaps = [m for m in missing_candidates if m.lower() not in text][:3]
 
-    # Tailored CV suggestions
-    cv_suggestions = []
-    if any(w in text for w in ["healthcare", "health", "hospital", "clinic", "doctor"]):
-        cv_suggestions.append("Lead with your MediCare project (role-based hospital platform with doctor scheduling and appointments).")
-    elif any(w in text for w in ["school", "education", "student", "learning", "lms"]):
-        cv_suggestions.append("Lead with your School Management Dashboard (4 role-based portals with Next.js, Prisma, and PostgreSQL).")
-    elif any(w in text for w in ["social", "chat", "messaging", "real-time", "socket"]):
-        cv_suggestions.append("Lead with your BusinessNet platform (real-time messaging with Socket.io, Node.js, and MongoDB).")
-    elif any(w in text for w in ["ecommerce", "e-commerce", "shop", "store", "product"]):
-        cv_suggestions.append("Lead with ShopEase or EventChamp (product filtering, REST APIs, Redux Toolkit).")
-    else:
-        cv_suggestions.append("Highlight your School Management Dashboard (Next.js, TypeScript, PostgreSQL) as your primary full-stack architecture showcase.")
+    cv_suggs = [
+        f"Highlight hands-on projects with {strengths[0]}" if strengths else "Feature your recent React portfolio",
+        f"Address requirement for {gaps[0]} by showcasing related skills" if gaps else "Emphasize clean code and git workflows"
+    ]
 
-    if any(w in text for w in ["performance", "optimization", "lighthouse", "fast"]):
-        cv_suggestions.append("Emphasize your Lighthouse performance score (>90) and reducing unnecessary API requests by 40%.")
-    elif any(w in text for w in ["open source", "community"]):
-        cv_suggestions.append("Feature your DEY HireReady NTI experience as Open-Source Applications Developer.")
-    else:
-        cv_suggestions.append("Surface your experience designing 25+ RESTful APIs with response times under 250ms.")
-
-    return final_score, verdict, strengths[:3], gaps[:3], cv_suggestions[:2]
+    return overall, verdict, strengths, gaps, cv_suggs

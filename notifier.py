@@ -1,7 +1,7 @@
 import html, requests
 from urllib.parse import quote
 import config
-from filters import work_type, extract_country
+from filters import work_type, extract_country, age_label
 
 API = "https://api.telegram.org/bot{}/{}"
 
@@ -40,7 +40,7 @@ def send_job(job):
     title = e(job.title)
     comp = e(job.company or "Company")
     loc = e(job.location or "Egypt")
-    posted = e(job.posted_at or job.posted_text or "Just now")
+    posted = e(age_label(job))
     url = job.url
 
     # Work type badge (Remote / Hybrid / On-site)
