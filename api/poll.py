@@ -13,13 +13,27 @@ class handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers(); self.wfile.write(body)
 
+    def do_POST(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length) if length > 0 else b"{}"
+            data = json.loads(body.decode("utf-8"))
+            import store as st
+            s = st.Store()
+            if s.r:
+                s.r.set("jobalert:user_config", json.dumps(data, ensure_ascii=False))
+            return self._send(200, {"ok": True, "saved": data})
+        except Exception as e:
+            return self._send(500, {"error": str(e)})
+
     def do_GET(self):
         q = parse_qs(urlparse(self.path).query)
         secret = os.getenv("CRON_SECRET", "jobalert_secret_key_2026")
         key = (q.get("key", [""])[0]) or self.headers.get("Authorization", "").replace("Bearer ", "")
         
         is_feed = "feed" in q or "jobs" in q
-        is_valid = (bool(key) and bool(secret) and hmac.compare_digest(key.encode(), secret.encode())) or (key == "jobalert_secret_key_2026") or is_feed
+        is_config = "config" in q
+        is_valid = (bool(key) and bool(secret) and hmac.compare_digest(key.encode(), secret.encode())) or (key == "jobalert_secret_key_2026") or is_feed or is_config
         if not is_valid:
             return self._send(401, {"error": "unauthorized", "hint": "Please provide ?key=jobalert_secret_key_2026"})
         
@@ -28,9 +42,30 @@ class handler(BaseHTTPRequestHandler):
             import config, notifier, emailer, core, store as st
             
             s = st.Store()
+            if is_config:
+                cfg = None
+                if s.r:
+                    val = s.r.get("jobalert:user_config")
+                    if val: cfg = json.loads(val)
+                return self._send(200, {"ok": True, "config": cfg})
+
             if is_feed:
                 feed = s.get_live_feed(limit=100)
                 return self._send(200, {"ok": True, "store": s.backend, "total": len(feed), "jobs": feed})
+
+            # تطبيق إعدادات المستخدم المحفوظة ديناميكياً إن وُجدت بـ Redis
+            if s and s.r:
+                try:
+                    cfg_raw = s.r.get("jobalert:user_config")
+                    if cfg_raw:
+                        user_cfg = json.loads(cfg_raw)
+                        filters_cfg = user_cfg.get("filters", {})
+                        if filters_cfg.get("title_must"):
+                            config.TITLE_MUST_ANY = list(set(config.TITLE_MUST_ANY + [w.lower() for w in filters_cfg["title_must"]]))
+                        if filters_cfg.get("title_exclude"):
+                            config.TITLE_EXCLUDE = [w.lower() for w in filters_cfg["title_exclude"]]
+                except Exception:
+                    pass
 
             dry = "dry" in q
             if "test" in q:

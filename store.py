@@ -165,6 +165,13 @@ class Store:
         if self.backend != "redis":
             return
         try:
+            import filters
+            if not filters.egypt_or_remote(job):
+                return
+            fresh, _ = filters.is_fresh(job)
+            if not fresh:
+                return
+
             job_data = {
                 "key": job.key, "id": getattr(job, "id", job.key), "title": job.title,
                 "source": getattr(job, "source", "unknown"),
@@ -223,7 +230,20 @@ class Store:
         if self.backend == "redis":
             try:
                 raw_items = self.r.lrange("jobalert:jobs_feed", 0, limit - 1)
-                return [json.loads(item) for item in raw_items if item]
+                items = []
+                now_ts = time.time()
+                three_days_sec = 3 * 86400
+                for item in raw_items:
+                    if not item: continue
+                    try:
+                        j = json.loads(item)
+                        sent_at = j.get("sent_at")
+                        if sent_at and isinstance(sent_at, (int, float)) and (now_ts - sent_at > three_days_sec):
+                            continue
+                        items.append(j)
+                    except Exception:
+                        pass
+                return items
             except Exception as e:
                 log.warning("Redis get_live_feed error: %s", e)
         return []

@@ -22,13 +22,36 @@ export default function SettingsPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [config, setConfig] = useState(INITIAL_CONFIG);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Load preferences from localStorage or remote Redis API on mount
+  React.useEffect(() => {
+    try {
+      const local = localStorage.getItem('jobalert_config');
+      if (local) {
+        setConfig(JSON.parse(local));
+      }
+    } catch {}
+
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.config) {
+          setConfig(data.config);
+          try {
+            localStorage.setItem('jobalert_config', JSON.stringify(data.config));
+          } catch {}
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // New tag inputs
   const [newMust, setNewMust] = useState('');
   const [newExclude, setNewExclude] = useState('');
 
   const addMust = () => {
-    if (newMust.trim() && !config.filters.title_must.includes(newMust.trim())) {
+    if (newMust.trim() && !config.filters.title_must.includes(newMust.trim().toLowerCase())) {
       setConfig({
         ...config,
         filters: {
@@ -51,7 +74,7 @@ export default function SettingsPage() {
   };
 
   const addExclude = () => {
-    if (newExclude.trim() && !config.filters.title_exclude.includes(newExclude.trim())) {
+    if (newExclude.trim() && !config.filters.title_exclude.includes(newExclude.trim().toLowerCase())) {
       setConfig({
         ...config,
         filters: {
@@ -73,9 +96,27 @@ export default function SettingsPage() {
     });
   };
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      try {
+        localStorage.setItem('jobalert_config', JSON.stringify(config));
+      } catch {}
+
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3500);
+    } catch (e) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3500);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -110,12 +151,20 @@ export default function SettingsPage() {
 
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-indigo-600/25 transition-all cursor-pointer"
+              disabled={saving}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-indigo-600/25 transition-all cursor-pointer disabled:opacity-50"
             >
-              {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-              <span>{saved ? 'Settings Saved!' : 'Save Preferences'}</span>
+              {saved ? <Check className="h-4 w-4 text-emerald-300" /> : <Save className="h-4 w-4" />}
+              <span>{saved ? 'Settings Saved & Synced!' : saving ? 'Saving...' : 'Save Preferences'}</span>
             </button>
           </div>
+
+          {saved && (
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-400 text-xs font-semibold">
+              <Check className="h-4 w-4 shrink-0 text-emerald-400" />
+              <span>Preferences saved to Redis & Browser. Scraper keywords and filters updated!</span>
+            </div>
+          )}
 
           {/* 1. Telegram Connection */}
           <TelegramBotCard

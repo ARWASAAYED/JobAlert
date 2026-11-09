@@ -42,24 +42,40 @@ def age_minutes(job, now=None):
     return None
 
 def is_fresh(job, max_minutes=None):
-    """الوظيفة لازم تكون نازلة من أقل من MAX_AGE_MINUTES أو MAX_JOB_AGE_HOURS."""
-    limit = max_minutes or config.MAX_AGE_MINUTES
+    """الوظيفة لازم تكون نازلة من أقل من 3 أيام كحد أقصى (72 ساعة)."""
+    # 1. فحص التاريخ إن وُجد YYYY-MM-DD
+    if job.posted_at and len(str(job.posted_at)) >= 10:
+        try:
+            job_date = dt.datetime.strptime(str(job.posted_at)[:10], "%Y-%m-%d").date()
+            diff_days = (dt.date.today() - job_date).days
+            if diff_days > 3:
+                return False, f"too old ({diff_days} days ago)"
+        except Exception:
+            pass
+
+    # 2. فحص النص إن وُجد (posted_text)
+    raw = (job.posted_text or "").lower()
+    if re.search(r"(\d+)\s*(?:month|year|week)s?\s*ago", raw):
+        return False, f"too old ({raw})"
+    m_days = re.search(r"(\d+)\s*days?\s*ago", raw)
+    if m_days and int(m_days.group(1)) > 3:
+        return False, f"too old ({raw})"
+
+    limit = max_minutes or getattr(config, "MAX_AGE_MINUTES", 4320)
+    # أقصى حد عام هو 3 أيام (4320 دقيقة)
+    limit = min(limit, 4320)
     age = age_minutes(job)
-    if age is None:
-        # فحص إضافي إذا كان التاريخ مكتوب بصيغة YYYY-MM-DD
-        if job.posted_at and len(job.posted_at) >= 10:
-            try:
-                job_date = dt.datetime.strptime(str(job.posted_at)[:10], "%Y-%m-%d").date()
-                diff_days = (dt.date.today() - job_date).days
-                if diff_days > (getattr(config, "MAX_JOB_AGE_HOURS", 24) / 24):
-                    return False, f"too old ({diff_days} days ago)"
-                return True, ""
-            except Exception:
-                pass
-        return False, "unknown posting time"
-    if age > limit:
-        return False, f"too old ({int(age)} min)"
-    return True, ""
+    if age is not None:
+        if age > limit:
+            return False, f"too old ({int(age)} min)"
+        return True, ""
+
+    # إذا لم نتمكن من حساب الدقائق ولكن التاريخ لم يتجاوز 3 أيام
+    if job.posted_at and len(str(job.posted_at)) >= 10:
+        return True, ""
+    if re.search(r"just now|today|yesterday|hours? ago|min|الآن|أمس", raw):
+        return True, ""
+    return False, "unknown or stale posting time"
 
 def age_label(job):
     """صيغة مختصرة وأنيقة لعمر الوظيفة للرسالة والداشبورد."""
@@ -187,12 +203,33 @@ def full_ok(job):
 
 def work_type(job):
     """Detect work arrangement: Remote, Hybrid, On-site."""
-    t = f"{job.title} {job.location} {job.description or ''}".lower()
-    kinds = []
-    if "remote" in t or job.remote_search: kinds.append("Remote")
-    if "hybrid" in t: kinds.append("Hybrid")
-    if re.search(r"on-?\s?site", t): kinds.append("On-site")
-    return " / ".join(kinds) or "On-site"
+    title = (job.title or "").lower()
+    loc = (job.location or "").lower()
+    desc = (job.description or "").lower()
+    combined = f"{title} {loc} {desc}"
+
+    # إذا كان العنوان يقول صراحة onsite أو on-site
+    if re.search(r"\b(onsite|on-site|in-office)\b", title):
+        return "On-site"
+
+    is_remote = False
+    if "remote" in title or "remote" in loc:
+        is_remote = True
+    elif "remote" in desc and not re.search(r"\b(no\s+remote|not\s+remote|non-remote)\b", desc):
+        is_remote = True
+    elif getattr(job, "remote_search", False) and not re.search(r"\b(onsite|on-site|in-office)\b", combined):
+        is_remote = True
+
+    is_hybrid = "hybrid" in combined
+    is_onsite = bool(re.search(r"\b(on-?site|in-office)\b", combined))
+
+    if is_remote and not is_onsite and not is_hybrid:
+        return "Remote"
+    if is_hybrid:
+        return "Hybrid"
+    if is_remote and is_onsite:
+        return "Remote / On-site"
+    return "On-site"
 
 def extract_country(job):
     """Extract country name from job location string."""
@@ -203,15 +240,16 @@ def extract_country(job):
         "alexandria": "🇪🇬 Egypt", "maadi": "🇪🇬 Egypt", "nasr city": "🇪🇬 Egypt",
         "6th of october": "🇪🇬 Egypt", "new cairo": "🇪🇬 Egypt", "smart village": "🇪🇬 Egypt",
         "mansoura": "🇪🇬 Egypt", "مصر": "🇪🇬 Egypt", "القاهرة": "🇪🇬 Egypt",
+        "philippines": "🇵🇭 Philippines", "manila": "🇵🇭 Philippines", "pasig": "🇵🇭 Philippines",
         "united states": "🇺🇸 USA", "usa": "🇺🇸 USA", "new york": "🇺🇸 USA",
         "san francisco": "🇺🇸 USA", "los angeles": "🇺🇸 USA", "chicago": "🇺🇸 USA",
         "boston": "🇺🇸 USA", "seattle": "🇺🇸 USA", "austin": "🇺🇸 USA",
         "united kingdom": "🇬🇧 UK", "london": "🇬🇧 UK", "manchester": "🇬🇧 UK",
         "germany": "🇩🇪 Germany", "berlin": "🇩🇪 Germany", "munich": "🇩🇪 Germany",
-        "france": "🇫🇷 France", "paris": "🇫🇷 France",
+        "france": "🇫🇷 France", "paris": "🇫🇷 France", "lyon": "🇫🇷 France",
         "canada": "🇨🇦 Canada", "toronto": "🇨🇦 Canada", "vancouver": "🇨🇦 Canada",
         "netherlands": "🇳🇱 Netherlands", "amsterdam": "🇳🇱 Netherlands",
-        "india": "🇮🇳 India", "bangalore": "🇮🇳 India", "mumbai": "🇮🇳 India",
+        "india": "🇮🇳 India", "bangalore": "🇮🇳 India", "bengaluru": "🇮🇳 India", "mumbai": "🇮🇳 India", "pune": "🇮🇳 India",
         "uae": "🇦🇪 UAE", "dubai": "🇦🇪 UAE", "abu dhabi": "🇦🇪 UAE",
         "saudi": "🇸🇦 Saudi Arabia", "riyadh": "🇸🇦 Saudi Arabia", "jeddah": "🇸🇦 Saudi Arabia",
         "qatar": "🇶🇦 Qatar", "doha": "🇶🇦 Qatar",
@@ -223,35 +261,58 @@ def extract_country(job):
         "ireland": "🇮🇪 Ireland", "dublin": "🇮🇪 Ireland",
         "poland": "🇵🇱 Poland", "warsaw": "🇵🇱 Poland",
         "sweden": "🇸🇪 Sweden", "stockholm": "🇸🇪 Sweden",
+        "italy": "🇮🇹 Italy", "milan": "🇮🇹 Italy", "rome": "🇮🇹 Italy",
     }
     
     for key, country in country_map.items():
         if key in loc:
             return country
     
-    # Remote / worldwide
+    # Remote / worldwide (فقط إذا لم يكن مذكور دولة محددة)
     remote_words = ["worldwide", "anywhere", "global", "remote", "emea", "mena"]
-    if any(w in loc for w in remote_words) or job.remote_search:
+    if any(w in loc for w in remote_words) or not loc.strip():
         return "🌐 Worldwide"
     
     raw = (job.location or "").strip()
-    return raw[:30] if raw else "🌍 Unknown"
+    return raw[:30] if raw else "🌐 Worldwide"
+
+def is_egypt_loc(text):
+    t = (text or "").lower()
+    egypt_words = [
+        "egypt", "cairo", "giza", "alexandria", "mansoura", "6th of october", "new cairo",
+        "maadi", "nasr city", "smart village", "tanta", "asyut", "suez", "ismailia",
+        "مصر", "القاهرة", "الجيزة", "الإسكندرية", "المعادي", "مدينة نصر", "أكتوبر"
+    ]
+    return any(w in t for w in egypt_words)
 
 def egypt_or_remote(job):
     loc = (job.location or "").lower()
     desc = (job.description or "").lower()
     title = (job.title or "").lower()
-    combined = f"{title}\n{loc}\n{desc}"
+    country = (getattr(job, "country", "") or "").lower()
+    combined = f"{title}\n{loc}\n{country}\n{desc}"
 
-    # 1. Egypt is always PASS (Candidate's home place)
-    egypt = [
-        "egypt", "cairo", "giza", "alexandria", "mansoura", "6th of october", "new cairo",
-        "maadi", "nasr city", "smart village", "مصر", "القاهرة", "الجيزة", "الإسكندرية"
-    ]
-    if _has(loc, egypt) or any(e in combined for e in ["based in egypt", "cairo, egypt"]):
+    # 1. إذا كانت الوظيفة في مصر: مقبولة بكل أنواع العمل (أونسايت، هايبرد، ريموت)
+    if is_egypt_loc(loc) or is_egypt_loc(country) or "based in egypt" in combined or "cairo, egypt" in combined:
         return True
 
-    # 2. Check for explicit country locks that prevent candidate in Egypt from working remotely
+    # 2. إذا كانت الوظيفة خارج مصر:
+    # شرط صارم ومطلق من المستخدمة: خارج مصر = REMOTE 100% فقط! أي On-site أو Hybrid خارج مصر مرفوض فوراً!
+    if re.search(r"\b(onsite|on-site|in-office|office based|relocate|relocation)\b", title):
+        return False
+
+    wt = (getattr(job, "work_type", "") or "").lower()
+    if not wt:
+        wt = work_type(job).lower()
+
+    if "on-site" in wt or "onsite" in wt or "in-office" in wt:
+        return False
+    if "hybrid" in wt:
+        return False
+    if "remote" not in wt:
+        return False
+
+    # قيود الإقامة الصارمة التي تمنع المقيمين في مصر
     country_locks = [
         "us only", "u.s. only", "united states only", "must reside in the us", "must be based in the us",
         "us citizen", "u.s. citizen", "green card", "security clearance", "authorized to work in the united states",
@@ -262,15 +323,11 @@ def egypt_or_remote(job):
     if any(lock in combined for lock in country_locks):
         return False
 
-    # 3. Valid remote scopes (EMEA, Worldwide, Global, or general remote without exclusive country lock)
-    remote_ok = ["worldwide", "anywhere", "global", "emea", "africa", "middle east", "mena", "remote"]
-    if loc.strip() == "" or _has(loc, remote_ok):
+    # التحقق من وجود مؤشر واضح على العمل عن بُعد المفتوح
+    remote_ok = ["worldwide", "anywhere", "global", "emea", "africa", "middle east", "mena", "remote", "work from anywhere", "100% remote"]
+    if any(w in combined for w in remote_ok) or getattr(job, "remote_search", False):
         return True
-    if job.remote_search:
-        # ريموت بس مكانه دولة معينة: نقبله لو الإعلان نفسه بيقول worldwide/EMEA/Africa/Egypt
-        open_phrases = ["worldwide", "anywhere", "work from anywhere", "global", "emea", "africa",
-                        "middle east", "mena", "egypt", "any location", "any country"]
-        return any(p in combined for p in open_phrases)
+
     return False
 
 def calculate_fit(job):

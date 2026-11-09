@@ -136,9 +136,14 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
             if store.has(job.key):
                 continue
 
+            job.work_type = filters.work_type(job)
+            job.country = filters.extract_country(job)
+            job.salary = getattr(job, "salary", "") or filters.extract_salary(job)
+            job.career_level = getattr(job, "career_level", "") or filters.extract_career_level(job)
+
             ok, why = filters.title_ok(job)
             if ok and not filters.egypt_or_remote(job):
-                ok, why = False, "location"
+                ok, why = False, "location (not Egypt and not 100% remote)"
             if ok and job.source == "linkedin":
                 try: linkedin.fetch_description(job)
                 except Exception: pass
@@ -146,10 +151,6 @@ def run_round(store, dry=False, pool=None, wait_timeout=None):
             if ok:
                 score, verdict, strengths, gaps, cv_suggs = filters.calculate_fit(job)
                 job.score, job.verdict, job.strengths, job.gaps, job.cv_suggestions = score, verdict, strengths, gaps, cv_suggs
-                job.work_type = filters.work_type(job)
-                job.country = filters.extract_country(job)
-                job.salary = getattr(job, "salary", "") or filters.extract_salary(job)
-                job.career_level = getattr(job, "career_level", "") or filters.extract_career_level(job)
                 if score < getattr(config, "MIN_FIT_SCORE", 35):
                     ok, why = False, f"low fit score ({score}%)"
             if not ok:

@@ -42,23 +42,23 @@ POLL_SECONDS = 120                                            # الفحص كل 
 MAX_AGE_MINUTES = int(os.getenv("MAX_AGE_MINUTES", "60"))      # الوظائف المنشورة خلال آخر X دقيقة للتنبيه الفوري
 MAX_JOB_AGE_HOURS = int(os.getenv("MAX_JOB_AGE_HOURS", "24")) # أقصى حد عام (24 ساعة)
 
-# ---- الفلاتر الدقيقة لمجال Frontend / React / Web / Fullstack ----
+# ---- الفلاتر الدقيقة لمجال Frontend / React / Web / Fullstack / Mobile ----
 TITLE_MUST_ANY = [
     "react", "front-end", "front end", "frontend", "next.js", "nextjs",
     "fullstack", "full stack", "full-stack",
     "shopify", "web developer", "ui developer", "ui/ux developer",
     "javascript developer", "frontend engineer", "front-end engineer",
-    "react engineer", "web engineer", "software engineer"
+    "react engineer", "web engineer", "software engineer",
+    "mobile developer", "mobile engineer", "react native", "flutter", "ios developer", "android developer"
 ]
 
 # الكلمات المستهدفة في الوصف (لو فاضية مبيفلتش بالوصف)
 DESCRIPTION_MUST = []
 
-# أي عنوان فيه دول يتشال فوراً
+# أي عنوان فيه دول يتشال فوراً (تمت إزالة mobile / react native / flutter لتلبية رغبة المستخدمة)
 TITLE_EXCLUDE = [
     "senior", "sr.", "sr ", "lead", "principal", "staff", "manager", "head of",
     "architect", "director", "expert", "unpaid",
-    "android", "ios", "mobile", "flutter", "react native", "kotlin", "swift",
     "infrastructure", "infra", "devops", "sre", "reliability",
     "backend", "back-end", "back end", "firmware", "embedded",
     "data engineer", "data scientist", "machine learning", "qa engineer", "sdet",
@@ -66,8 +66,16 @@ TITLE_EXCLUDE = [
 ]
 
 # لو العنوان عام (Software Engineer / Web Developer) لازم الوصف يذكر واحدة من دول
-CORE_SKILLS = ["react", "next.js", "nextjs", "javascript", "typescript", "frontend", "front-end", "front end", "full stack", "fullstack"]
-CORE_TITLE_WORDS = ["react", "front-end", "front end", "frontend", "next.js", "nextjs", "full stack", "fullstack", "shopify", "ui developer", "javascript"]
+CORE_SKILLS = [
+    "react", "next.js", "nextjs", "javascript", "typescript",
+    "frontend", "front-end", "front end", "full stack", "fullstack",
+    "mobile", "react native", "flutter"
+]
+CORE_TITLE_WORDS = [
+    "react", "front-end", "front end", "frontend", "next.js", "nextjs",
+    "full stack", "fullstack", "shopify", "ui developer", "javascript",
+    "mobile", "flutter", "react native"
+]
 
 # لو العنوان فيه دول ومفيهوش react أو frontend يتشال
 OTHER_FRAMEWORKS = ["angular", "vue", "svelte", "php", "laravel", ".net", "java ", "python"]
@@ -84,7 +92,7 @@ BAD_PHRASES = [
 ]
 
 # ---- مصادر لينكدان ----
-LINKEDIN_KEYWORDS = ["react developer", "frontend developer", "next.js", "shopify developer"]
+LINKEDIN_KEYWORDS = ["react developer", "frontend developer", "next.js", "shopify developer", "mobile developer", "react native"]
 LINKEDIN_SEARCHES = [
     ("Egypt", None),        # مصر: أونسايت/هايبرد/ريموت
     ("Worldwide", "2"),     # ريموت من أي مكان
