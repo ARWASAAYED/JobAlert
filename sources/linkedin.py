@@ -69,8 +69,31 @@ def _search(args):
     except Exception:
         return []
 
+def get_keywords():
+    """توليد كلمات البحث ديناميكياً من المهارات التي حددها المستخدم في الإعدادات."""
+    terms = []
+    for m in getattr(config, "TITLE_MUST_ANY", []):
+        m = m.strip()
+        if not m:
+            continue
+        if any(w in m.lower() for w in ["developer", "engineer", "designer", "specialist", "program"]):
+            terms.append(m)
+        else:
+            terms.append(f"{m} developer")
+    if not terms:
+        terms = list(getattr(config, "LINKEDIN_KEYWORDS", ["react developer", "frontend developer"]))
+    seen = set()
+    unique = []
+    for t in terms:
+        low = t.lower()
+        if low not in seen:
+            seen.add(low)
+            unique.append(t)
+    return unique[:6]
+
 def fetch():
-    combos = [(kw, loc, wt) for kw in config.LINKEDIN_KEYWORDS for loc, wt in config.LINKEDIN_SEARCHES]
+    kws = get_keywords()
+    combos = [(kw, loc, wt) for kw in kws for loc, wt in config.LINKEDIN_SEARCHES]
     out, seen = [], set()
     with ThreadPoolExecutor(max_workers=4) as ex:
         for cards in ex.map(_search, combos):

@@ -39,8 +39,8 @@ LINKEDIN_LI_AT = os.getenv("LINKEDIN_LI_AT", "")   # كوكي الجلسة اخ�
 
 # ---- التوقيت وتحديد حداثة الوظيفة ----
 POLL_SECONDS = 120                                            # الفحص كل كام ثانية
-MAX_AGE_MINUTES = int(os.getenv("MAX_AGE_MINUTES", "60"))      # الوظائف المنشورة خلال آخر X دقيقة للتنبيه الفوري
-MAX_JOB_AGE_HOURS = int(os.getenv("MAX_JOB_AGE_HOURS", "24")) # أقصى حد عام (24 ساعة)
+MAX_AGE_MINUTES = int(os.getenv("MAX_AGE_MINUTES", "4320"))      # الوظائف المنشورة خلال آخر 3 أيام (4320 دقيقة)
+MAX_JOB_AGE_HOURS = int(os.getenv("MAX_JOB_AGE_HOURS", "72")) # أقصى حد عام (3 أيام = 72 ساعة)
 
 # ---- الفلاتر الدقيقة لمجال Frontend / React / Web / Fullstack / Mobile ----
 TITLE_MUST_ANY = [

@@ -61,17 +61,26 @@ export async function GET(req: Request) {
             // 2) Location Check: If outside Egypt, MUST be 100% Remote
             const isEgypt = egyptRegex.test(location) || egyptRegex.test(country);
             const titleLower = title.toLowerCase();
+            const locLower = location.toLowerCase();
             const workLower = rawWorkType.toLowerCase();
 
             if (!isEgypt) {
-              // Any abroad on-site or hybrid role is rejected
-              if (/\b(onsite|on-site|in-office)\b/.test(titleLower)) {
+              // Any abroad on-site or hybrid role is strictly rejected
+              if (/\b(onsite|on-site|in-office)\b/.test(`${titleLower} ${locLower}`)) {
                 return null;
               }
               if (workLower.includes('on-site') || workLower.includes('onsite') || workLower.includes('hybrid')) {
                 return null;
               }
               if (!workLower.includes('remote') && !j.remote) {
+                return null;
+              }
+
+              // Must have an explicit remote/worldwide indicator (reject local foreign city offices without remote)
+              const hasRemoteKeyword = /remote|worldwide|anywhere|global|work from anywhere|100% remote|fully remote|emea|mena/i.test(
+                `${titleLower} ${locLower} ${j.description || ''}`
+              );
+              if (!hasRemoteKeyword) {
                 return null;
               }
             }

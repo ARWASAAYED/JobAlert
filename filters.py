@@ -189,10 +189,12 @@ def full_ok(job):
     if config.DESCRIPTION_MUST and job.description is not None and not _has(text, config.DESCRIPTION_MUST):
         return False, "required description keyword not mentioned"
         
-    # 3b. لو العنوان عام (Software Engineer / Web Developer): لازم الوصف يذكر مهارة من مهاراتك
-    if not _has(job.title.lower(), config.CORE_TITLE_WORDS):
-        if job.description is None or not _has(text, config.CORE_SKILLS):
-            return False, "generic title without react/frontend skills"
+    # 3b. لو العنوان عام (Software Engineer / Web Developer): لازم الوصف يذكر مهارة من مهاراتك المستهدفة
+    core_words = list(set(config.CORE_TITLE_WORDS + config.TITLE_MUST_ANY))
+    core_skills = list(set(config.CORE_SKILLS + config.TITLE_MUST_ANY))
+    if not _has(job.title.lower(), core_words):
+        if job.description is None or not _has(text, core_skills):
+            return False, "generic title without target skills"
 
     # 4. استبعاد القيود الجغرافية الصارمة (مثل US Only لمقيم في مصر)
     if _has(text, config.BAD_PHRASES):
@@ -212,8 +214,8 @@ def work_type(job):
     desc = (job.description or "").lower()
     combined = f"{title} {loc} {desc}"
 
-    # إذا كان العنوان يقول صراحة onsite أو on-site
-    if re.search(r"\b(onsite|on-site|in-office)\b", title):
+    # إذا كان العنوان أو المكان يقول صراحة onsite أو on-site
+    if re.search(r"\b(onsite|on-site|in-office)\b", f"{title} {loc}"):
         return "On-site"
 
     is_remote = False
@@ -221,7 +223,7 @@ def work_type(job):
         is_remote = True
     elif "remote" in desc and not re.search(r"\b(no\s+remote|not\s+remote|non-remote)\b", desc):
         is_remote = True
-    elif getattr(job, "remote_search", False) and not re.search(r"\b(onsite|on-site|in-office)\b", combined):
+    elif any(w in combined for w in ["worldwide", "work from anywhere", "100% remote", "fully remote"]):
         is_remote = True
 
     is_hybrid = "hybrid" in combined
@@ -327,9 +329,9 @@ def egypt_or_remote(job):
     if any(lock in combined for lock in country_locks):
         return False
 
-    # التحقق من وجود مؤشر واضح على العمل عن بُعد المفتوح
-    remote_ok = ["worldwide", "anywhere", "global", "emea", "africa", "middle east", "mena", "remote", "work from anywhere", "100% remote"]
-    if any(w in combined for w in remote_ok) or getattr(job, "remote_search", False):
+    # التحقق من وجود مؤشر صريح وقاطع على العمل عن بُعد
+    remote_ok = ["worldwide", "anywhere", "global", "emea", "africa", "middle east", "mena", "remote", "work from anywhere", "100% remote", "fully remote"]
+    if any(w in combined for w in remote_ok):
         return True
 
     return False
