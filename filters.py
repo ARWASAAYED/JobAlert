@@ -144,8 +144,12 @@ def title_ok(job):
     # 2. استبعاد المسميات الإدارية والعليا (Senior, Lead, Principal, etc.) ومجالات غير مرغوبة
     is_junior_explicit = any(j in t for j in ["junior", "jr.", "jr ", "entry level", "fresh", "مبتدئ"])
     
-    if _has(t, config.TITLE_EXCLUDE):
-        if not is_junior_explicit:
+    effective_exclude = [
+        ex for ex in config.TITLE_EXCLUDE 
+        if not any(must == ex or must in ex for must in config.TITLE_MUST_ANY)
+    ]
+    if _has(t, effective_exclude):
+        if not is_junior_explicit and not any(must in t for must in ["senior", "mid-level", "mid level"]):
             return False, "excluded title word"
             
     # 3. إطارات العمل الأخرى غير المستهدفة

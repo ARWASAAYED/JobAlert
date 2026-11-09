@@ -61,11 +61,28 @@ class handler(BaseHTTPRequestHandler):
                         user_cfg = json.loads(cfg_raw)
                         filters_cfg = user_cfg.get("filters", {})
                         if filters_cfg.get("title_must"):
-                            config.TITLE_MUST_ANY = list(set(config.TITLE_MUST_ANY + [w.lower() for w in filters_cfg["title_must"]]))
+                            custom_must = [w.lower().strip() for w in filters_cfg["title_must"] if w.strip()]
+                            config.TITLE_MUST_ANY = list(set(config.TITLE_MUST_ANY + custom_must))
+                            # إزالة أي كلمة مستهدفة من قائمة الاستبعاد
+                            config.TITLE_EXCLUDE = [
+                                ex for ex in config.TITLE_EXCLUDE
+                                if not any(m == ex or m in ex or ex in m for m in custom_must)
+                            ]
                         if filters_cfg.get("title_exclude"):
-                            config.TITLE_EXCLUDE = [w.lower() for w in filters_cfg["title_exclude"]]
-                except Exception:
-                    pass
+                            custom_ex = [w.lower().strip() for w in filters_cfg["title_exclude"] if w.strip()]
+                            config.TITLE_EXCLUDE = [ex for ex in custom_ex if ex not in config.TITLE_MUST_ANY]
+                        if filters_cfg.get("max_years"):
+                            config.MAX_YEARS_REQUIRED = int(filters_cfg["max_years"])
+                        elif any(s in config.TITLE_MUST_ANY for s in ["senior", "mid-level", "mid level"]):
+                            config.MAX_YEARS_REQUIRED = 8
+
+                        # إضافة كلمات بحث إضافية في LinkedIn إذا كان المستخدم يستهدف وظائف Senior
+                        if any("senior" in m for m in config.TITLE_MUST_ANY):
+                            for extra_kw in ["senior frontend developer", "senior react developer"]:
+                                if extra_kw not in config.LINKEDIN_KEYWORDS:
+                                    config.LINKEDIN_KEYWORDS.append(extra_kw)
+                except Exception as err:
+                    logging.warning("Config apply error: %s", err)
 
             dry = "dry" in q
             if "test" in q:

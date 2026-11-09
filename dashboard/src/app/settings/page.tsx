@@ -49,14 +49,27 @@ export default function SettingsPage() {
   // New tag inputs
   const [newMust, setNewMust] = useState('');
   const [newExclude, setNewExclude] = useState('');
+  const [isPolling, setIsPolling] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
 
   const addMust = () => {
-    if (newMust.trim() && !config.filters.title_must.includes(newMust.trim().toLowerCase())) {
+    const val = newMust.trim().toLowerCase();
+    if (val && !config.filters.title_must.includes(val)) {
+      // If adding senior or mid-level, automatically remove conflict from exclude
+      const updatedExclude = config.filters.title_exclude.filter(
+        (w) => w !== val && !(val === 'senior' && (w === 'sr.' || w === 'senior')) && !(val === 'mid-level' && w === 'mid-level')
+      );
+      const updatedMaxYears = (val === 'senior' || val === 'mid-level') && config.filters.max_years < 6 
+        ? 8 
+        : config.filters.max_years;
+
       setConfig({
         ...config,
         filters: {
           ...config.filters,
-          title_must: [...config.filters.title_must, newMust.trim().toLowerCase()],
+          title_must: [...config.filters.title_must, val],
+          title_exclude: updatedExclude,
+          max_years: updatedMaxYears,
         },
       });
       setNewMust('');
@@ -96,8 +109,23 @@ export default function SettingsPage() {
     });
   };
 
+  const handleTriggerPoll = async () => {
+    setIsPolling(true);
+    setStatusMsg('Scraping fresh jobs with your updated keywords...');
+    try {
+      await fetch('/api/poll');
+      setStatusMsg('Scrape complete! Fresh jobs sent to Telegram & Feed.');
+    } catch {
+      setStatusMsg('Scrape initiated in background.');
+    } finally {
+      setIsPolling(false);
+      setTimeout(() => setStatusMsg(''), 4500);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
+    setStatusMsg('Saving preferences to Redis and running scraper...');
     try {
       try {
         localStorage.setItem('jobalert_config', JSON.stringify(config));
@@ -110,7 +138,13 @@ export default function SettingsPage() {
       });
 
       setSaved(true);
-      setTimeout(() => setSaved(false), 3500);
+      // Trigger immediate scraper run so senior/mid-level jobs are fetched right away!
+      fetch('/api/poll').catch(() => {});
+      setStatusMsg('Saved! Scraper is now searching for jobs with your new skills.');
+      setTimeout(() => {
+        setSaved(false);
+        setStatusMsg('');
+      }, 4500);
     } catch (e) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3500);
@@ -133,8 +167,8 @@ export default function SettingsPage() {
         }`}
       >
         <Header
-          onTriggerPoll={async () => {}}
-          isPolling={false}
+          onTriggerPoll={handleTriggerPoll}
+          isPolling={isPolling}
           botOnline={INITIAL_STATS.is_online}
         />
 
@@ -159,10 +193,10 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {saved && (
-            <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-400 text-xs font-semibold">
+          {statusMsg && (
+            <div className="flex items-center gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-indigo-300 text-xs font-semibold animate-in fade-in">
               <Check className="h-4 w-4 shrink-0 text-emerald-400" />
-              <span>Preferences saved to Redis & Browser. Scraper keywords and filters updated!</span>
+              <span>{statusMsg}</span>
             </div>
           )}
 
@@ -281,7 +315,7 @@ export default function SettingsPage() {
                 <input
                   type="range"
                   min="0"
-                  max="5"
+                  max="12"
                   step="1"
                   value={config.filters.max_years}
                   onChange={(e) =>
